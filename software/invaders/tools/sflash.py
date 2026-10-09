@@ -78,8 +78,8 @@ class OpenOCD:
 
 
 class Tool:
-    def __init__(self):
-        self.o = OpenOCD()
+    def __init__(self, speed=4000):
+        self.o = OpenOCD(speed)
         self.m = mbox_addr()
         if self.o.rd(self.m) != 0x544C4653:
             raise SystemExit('sflash firmware is not running (magic missing)')

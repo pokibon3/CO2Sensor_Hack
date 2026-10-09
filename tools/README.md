@@ -14,7 +14,7 @@ AT32F415の内蔵FlashとW25Q32の内容をSWDで読み出し、ファイルに�
 
 ```sh
 python3 tools/backup_flash.py mcu        # 内蔵Flash 128 KB とユーザーシステムデータ 48 B
-python3 tools/backup_flash.py spiflash   # W25Q32 4 MB（sflashファームが動いていること）
+python3 tools/backup_flash.py spiflash   # W25Q32 4 MB（sflashファームが動いていること。読出し中はS2を押し続ける）
 python3 tools/backup_flash.py all        # 両方。最後にMCUの内容を書き戻す
 ```
 
@@ -43,8 +43,13 @@ python3 tools/backup_flash.py all        # 両方。最後にMCUの内容を書�
 
 手順2と4は書込み後にMCUをリセットする。リセットすると電源ラッチが外れるため、「Hold S2 and press Enter」と表示されたらS2を押したままEnterを押す。
 
+**手順2から最後まで、S2を押し続ける。** W25Q32の読出しは約10 KB/sで、4 MBに約7分かかる。「Saved to ... S2 can be released.」と表示されたら離してよい。指を替えるなど数秒離れる程度なら、失敗したブロックを読み直して続きから読む。10秒以上離れると中止し、実行し直すと最初から読み直しになる。
+
 ### 注意
 
 - 先に `mcu` だけを実行し、2回の読出しが一致して保存できたことを確認してから `all` を使う
 - 内蔵Flashが全部0と読める場合は、読出し保護（FAP）が有効の可能性があるとして中止する。FAPの解除は全消去を伴うため、このスクリプトでは解除しない
 - 通信が不安定な場合は配線を短くし、GNDを確実にする
+- sflashファームの動作中（LT7680Bと液晶が動いている間）は、電源ラッチ（PA7）だけではSWDのメモリアクセスが失敗する。S2を押していれば読める。電源の余裕が足りないためと考えられるが、電圧は実測していない（2026-10-09確認）
+- W25Q32は各ブロックを2回読み、一致したものだけを採用する。OpenOCDが途中で終了した場合は起動し直す
+- 書き戻し時に `verify_image` が `checksum mismatch - attempting binary compare` と表示することがある。続くバイト比較で差分が出なければ問題ない（2026-10-09、書き戻し後の読み直しでSHA256一致を確認）

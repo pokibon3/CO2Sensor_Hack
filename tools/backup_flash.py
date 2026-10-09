@@ -12,7 +12,9 @@ have matched. --no-restore leaves the sflash firmware on the MCU.
 
 The default DIR is backups/YYYYmmdd-HHMMSS in the repository root. Files:
 factory_firmware.bin, user_system_data.bin, w25q32_factory.bin, SHA256SUMS.
-Power the board with S2. Do not power it from the probe.
+Power the board with S2. Do not power it from the probe. While the sflash
+firmware runs, keep S2 held: the power latch alone does not keep SWD memory
+access working (about 7 minutes for the W25Q32).
 """
 import argparse, datetime, hashlib, os, subprocess, sys, tempfile
 
@@ -104,8 +106,48 @@ def backup_mcu(outdir):
     return reads[0]
 
 
-def backup_spiflash(outdir):
-    t = sflash.Tool()
+def open_tool():
+    return sflash.Tool(speed=1000)
+
+
+def close_tool(t):
+    try:
+        t.o.close()
+    except Exception:
+        t.o.proc.kill()
+        t.o.proc.wait()
+
+
+def read_spi_chunk(t, addr, n):
+    """Read a chunk twice and accept it only when both reads match.
+
+    OpenOCD sometimes exits in the middle of a long read, so on any error
+    it is restarted. Returns (data, tool).
+    """
+    for _ in range(RETRIES):
+        try:
+            if t is None:
+                t = open_tool()
+            a, b = t.read(addr, n), t.read(addr, n)
+            if len(a) == n and a == b:
+                return a, t
+        except (SystemExit, ValueError, OSError):
+            pass
+        if t is not None:
+            close_tool(t)
+            t = None
+    raise SystemExit(f'cannot read W25Q32 at {addr:#x}; check the SWD wiring')
+
+
+def backup_spiflash(outdir, ask):
+    # With the sflash firmware (LT7680B and panel on), the PA7 latch alone does
+    # not keep SWD memory access working; S2 must be held for the whole read.
+    msg = 'Keep S2 held until the W25Q32 read finishes (about 7 minutes)'
+    if ask:
+        input(msg + '. Hold S2 and press Enter... ')
+    else:
+        print(msg)
+    t = open_tool()
     try:
         t.run(sflash.CMD_ID)
         jedec = t.o.rd(t.m + 20)
@@ -116,11 +158,13 @@ def backup_spiflash(outdir):
         t0 = sflash.time.time()
         while len(out) < sflash.FLASH_SIZE:
             n = min(sflash.BUF, sflash.FLASH_SIZE - len(out))
-            out += t.read(len(out), n)
+            data, t = read_spi_chunk(t, len(out), n)
+            out += data
             sflash.progress(len(out), sflash.FLASH_SIZE, t0)
         sys.stderr.write('\n')
     finally:
-        t.o.close()
+        if t is not None:
+            close_tool(t)
     save(outdir, SPI_FILE, bytes(out))
 
 
@@ -154,12 +198,15 @@ def main():
             subprocess.run(['pio', 'run', '-e', 'sflash'], cwd=INVADERS, check=True)
         print('Writing the sflash firmware to the MCU')
         write_mcu(os.path.abspath(sflash.ELF), '')
-    if a.target in ('spiflash', 'all'):
-        backup_spiflash(a.outdir)
-    if a.target == 'all' and not a.no_restore:
-        print('Writing the MCU backup back')
-        write_mcu(os.path.join(os.path.abspath(a.outdir), MCU_FILE), f'{MCU_FLASH:#x} bin')
-    print(f'Saved to {a.outdir}')
+    try:
+        if a.target in ('spiflash', 'all'):
+            backup_spiflash(a.outdir, ask=a.target == 'spiflash')
+    finally:
+        # Restore the MCU even if the W25Q32 read failed.
+        if a.target == 'all' and not a.no_restore:
+            print('Writing the MCU backup back')
+            write_mcu(os.path.join(os.path.abspath(a.outdir), MCU_FILE), f'{MCU_FLASH:#x} bin')
+    print(f'Saved to {a.outdir}. S2 can be released.')
 
 
 if __name__ == '__main__':
