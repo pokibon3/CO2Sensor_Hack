@@ -4,6 +4,7 @@
 #include "game.h"
 #include "game_int.h"
 #include "gfx.h"
+#include "setup.h"
 #include "title.h"
 
 /* Portrait layout: 3D view on top, status panel below. */
@@ -544,7 +545,7 @@ static void draw_win(void)
   text_center(250, s, 2, RGB565(200, 200, 200));
   if(g.timer > GAME_HZ && (g.timer / 15u) % 2u == 0u)
   {
-    text_center(400, "PRESS FIRE", 3, RGB565(250, 220, 60));
+    text_center(400, "PRESS SHOOT", 3, RGB565(230, 40, 30));
   }
 }
 
@@ -554,10 +555,15 @@ static bool title_valid[2];
 void game_render(void)
 {
   gfx_frame_begin();
-  if(g.state == ST_TITLE || g.state == ST_WIN)
+  if(g.state == ST_TITLE || g.state == ST_WIN || g.state == ST_SETUP)
   {
     hud[0].valid = hud[1].valid = false;
-    if(g.state == ST_TITLE)
+    if(g.state == ST_SETUP)
+    {
+      title_valid[0] = title_valid[1] = false;
+      setup_draw();
+    }
+    else if(g.state == ST_TITLE)
     {
       title_draw(!title_valid[gfx_back()], (g.timer / 15u) % 2u == 0u);
       title_valid[gfx_back()] = true;
@@ -587,7 +593,7 @@ void game_render(void)
       text_center(110, "YOU DIED", 4, RGB565(230, 40, 30));
       if(g.timer > GAME_HZ)
       {
-        text_center(170, "PRESS FIRE", 2, RGB565(250, 220, 60));
+        text_center(170, "PRESS SHOOT", 2, RGB565(230, 40, 30));
       }
     }
     draw_hud();

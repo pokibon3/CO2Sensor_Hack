@@ -1,6 +1,7 @@
 #include <math.h>
 #include "game.h"
 #include "game_int.h"
+#include "setup.h"
 #include "sound.h"
 
 game_t g;
@@ -15,6 +16,8 @@ game_t g;
 #define MAX_AMMO      99
 #define FIRE_TICKS    10
 #define WAKE_DIST     12.0f
+#define DOUBLE_TICKS  (GAME_HZ * 2u / 5u)  /* fire double click on the title */
+#define DEAD_TICKS    (5u * GAME_HZ)  /* YOU DIED returns to the title */
 
 static uint32_t rng;
 
@@ -141,9 +144,49 @@ static void load_level(uint8_t level)
   g.player.bonus = 0u;
 }
 
+/* 0-100 from one reading: 100 inside [good_lo, good_hi], falling to 0
+ * at `zero_at` units outside it.
+ */
+static int score(int v, int good_lo, int good_hi, int zero_at)
+{
+  int off = v < good_lo ? good_lo - v : v > good_hi ? v - good_hi : 0;
+  int s = 100 - off * 100 / zero_at;
+  return s < 0 ? 0 : s;
+}
+
+int comfort_score(void)
+{
+  int c = -1;
+  int s;
+
+  /* a sensor without a reading is left out */
+  if(co2_ppm != SENSOR_NONE)
+  {
+    s = score(co2_ppm, 0, 800, 1200);       /* 0 at 2000 ppm */
+    c = c < 0 || s < c ? s : c;
+  }
+  if(temp_c10 != SENSOR_NONE)
+  {
+    s = score(temp_c10, 200, 260, 67);      /* -15 per degC */
+    c = c < 0 || s < c ? s : c;
+  }
+  if(humi_pc10 != SENSOR_NONE)
+  {
+    s = score(humi_pc10, 400, 600, 333);    /* -15 per 5 %RH */
+    c = c < 0 || s < c ? s : c;
+  }
+  return c;
+}
+
+int start_health(void)
+{
+  int c = comfort_score();
+  return c < 0 ? START_HP : START_HP / 2 + c * START_HP / 200;
+}
+
 static void new_game(void)
 {
-  g.player.hp = START_HP;
+  g.player.hp = (int16_t)start_health();
   g.player.ammo = START_AMMO;
   load_level(0u);
   g.player.cooldown = 15u;          /* the start press is not a shot */
@@ -453,12 +496,22 @@ static void update_player(const input_t *in)
   if(p->bonus != 0u) p->bonus--;
 }
 
+bool game_playing(void)
+{
+  return g.state == ST_PLAY;
+}
+
 void game_tick(const input_t *in)
 {
   static bool fire_prev = true;
+  static uint8_t since_fire = 0xFFu;   /* ticks since the last fire press on the title */
   bool fire_edge = in->fire && !fire_prev;
 
   fire_prev = in->fire;
+  if(since_fire < 0xFFu)
+  {
+    since_fire++;
+  }
   if(g.timer < 0xFFFFu)
   {
     g.timer++;
@@ -467,9 +520,37 @@ void game_tick(const input_t *in)
   switch(g.state)
   {
     case ST_TITLE:
+      /* a short press starts the game once the double click window has
+       * passed, two open SET UP; a long press is left to power off */
       if(fire_edge)
       {
+        if(since_fire <= DOUBLE_TICKS)
+        {
+          setup_enter();
+          g.state = ST_SETUP;
+          g.timer = 0u;
+          since_fire = 0xFFu;
+        }
+        else
+        {
+          since_fire = 0u;
+        }
+      }
+      else if(since_fire != 0xFFu && in->fire && since_fire >= GAME_HZ)
+      {
+        since_fire = 0xFFu;
+      }
+      else if(since_fire != 0xFFu && !in->fire && since_fire > DOUBLE_TICKS)
+      {
+        since_fire = 0xFFu;
         new_game();
+      }
+      break;
+    case ST_SETUP:
+      if(setup_tick(in, fire_edge))
+      {
+        g.state = ST_TITLE;
+        g.timer = 0u;
       }
       break;
     case ST_PLAY:
@@ -482,7 +563,7 @@ void game_tick(const input_t *in)
     case ST_DEAD:
       update_actors();
       if(g.player.hurt != 0u) g.player.hurt--;
-      if(g.timer > GAME_HZ && fire_edge)
+      if(g.timer >= DEAD_TICKS || (g.timer > GAME_HZ && fire_edge))
       {
         g.state = ST_TITLE;
         g.timer = 0u;

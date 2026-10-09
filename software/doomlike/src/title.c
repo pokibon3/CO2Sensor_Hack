@@ -1,6 +1,7 @@
 #include "font.h"
 #include "game_int.h"
 #include "gfx.h"
+#include "setup.h"
 #include "title.h"
 
 /* DOOM title page: a bevelled orange logo with a perspective flare over a
@@ -10,8 +11,8 @@
  */
 
 #define GROUND_Y   330
-#define PROMPT_Y   368
-#define PROMPT_H   32
+#define PROMPT_Y   356
+#define PROMPT_H   28
 #define GROUND_COL RGB565(14, 4, 4)
 
 #define GLYPH_W    9
@@ -292,7 +293,7 @@ static void draw_prompt(bool on)
   gfx_fill(0, PROMPT_Y, SCREEN_W, PROMPT_H, GROUND_COL);
   if(on)
   {
-    text_center(PROMPT_Y + 4, "PRESS FIRE", 3, RGB565(250, 220, 60));
+    text_center(PROMPT_Y + 3, "PRESS SHOOT", 3, RGB565(230, 40, 30));
   }
 }
 
@@ -304,10 +305,13 @@ void title_draw(bool full, bool prompt)
     draw_mountains();
     draw_ground();
     draw_gate();
-    draw_logo("DOOM", 20, 6, 48);
-    text_center(412, "LEFT/RIGHT: TURN", 2, RGB565(190, 170, 160));
-    text_center(432, "BOTH: FORWARD", 2, RGB565(190, 170, 160));
-    text_center(452, "FIRE: SHOOT", 2, RGB565(190, 170, 160));
+    draw_logo("DOOM", 44, 6, 48);
+    text_center(386, "LEFT/RIGHT: TURN", 1, RGB565(190, 170, 160));
+    text_center(398, "BOTH: FORWARD", 1, RGB565(190, 170, 160));
+    text_center(410, "PWR: SHOOT", 1, RGB565(190, 170, 160));
+    text_center(422, "PWR TWICE: SET UP", 1, RGB565(190, 170, 160));
   }
   draw_prompt(prompt);
+  status_bar_draw();
+  sensor_bar_draw();
 }

@@ -20,6 +20,8 @@ extern "C" {
 #define FLASH_MODULE_ENABLED
 #define DMA_MODULE_ENABLED
 #define TMR_MODULE_ENABLED
+#define ADC_MODULE_ENABLED
+#define EXINT_MODULE_ENABLED
 
 #include "at32f415_crm.h"
 #include "at32f415_gpio.h"
@@ -28,6 +30,8 @@ extern "C" {
 #include "at32f415_flash.h"
 #include "at32f415_dma.h"
 #include "at32f415_tmr.h"
+#include "at32f415_adc.h"
+#include "at32f415_exint.h"
 
 #ifdef __cplusplus
 }

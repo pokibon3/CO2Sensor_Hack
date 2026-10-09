@@ -2,7 +2,7 @@
  * input sequence and writes selected frames as PPM.
  *
  *   cc -O2 -Isrc -o host_sim tools/host_sim.c src/game.c src/render.c \
- *      src/title.c src/font.c src/levels.c src/art.c src/textures.c -lm
+ *      src/title.c src/setup.c src/digits.c src/font.c src/levels.c src/art.c src/textures.c -lm
  *   ./host_sim OUTDIR
  */
 #include <stdio.h>
@@ -44,6 +44,7 @@ void gfx_fill(int x, int y, int w, int h, uint16_t c)
 
 static int sfx_count[SFX_COUNT];
 void sound_play(int s) { sfx_count[s]++; }
+void platform_set_clock(const datetime_t *t) { (void)t; }
 
 static void dump(const char *dir, int frame)
 {
@@ -88,8 +89,8 @@ int main(int argc, char **argv)
   const char *dir = argc > 1 ? argv[1] : ".";
   /* script: frame ranges with inputs (L R F) */
   struct { int until; int l, r, f; } script[] = {
-    {20, 0, 0, 0},     /* title */
-    {22, 0, 0, 1},     /* start */
+    {10, 0, 0, 0},     /* title */
+    {12, 0, 0, 1},     /* start (after the double click window) */
     {40, 0, 0, 0},
     {90, 1, 1, 0},     /* walk forward */
     {110, 0, 1, 0},    /* turn right */
@@ -101,15 +102,21 @@ int main(int argc, char **argv)
   };
   int dumps_walk[] = {10, 41, 90, 110, 151, 168, 200, 260, 330, 450, 599};
   int dumps_fight[] = {40, 60, 61, 64, 71, 80, 100, 130, 160, 260, 599};
-  int *dumps = argc > 2 && atoi(argv[2]) == 1 ? dumps_fight : dumps_walk;
-  int si = 0, di = 0;
-
+  int dumps_setup[] = {10, 22, 70, 81, 96, 120, 599, 599, 599, 599, 599};
   int scene = argc > 2 ? atoi(argv[2]) : 0;
+  int *dumps = scene == 1 ? dumps_fight : scene == 2 ? dumps_setup : dumps_walk;
+  int si = 0, di = 0;
 
   check_levels();
   game_init(1);
   perf_fps = 30;
   perf_ms = 18;
+  clock_now = (datetime_t){2026u, 10u, 10u, 9u, 41u, 27u};
+  clock_valid = true;
+  batt_percent = 85;
+  co2_ppm = 812;
+  temp_c10 = 235;
+  humi_pc10 = 452;
   for(int frame = 0; frame < 600; frame++)
   {
     input_t in;
@@ -121,6 +128,15 @@ int main(int argc, char **argv)
       if(frame == 30) { g.player.x = 7.5f; g.player.y = 3.5f; g.player.angle = 0.0f; }
       in.left = in.right = 0;
       in.fire = frame >= 60;
+    }
+    if(scene == 2)
+    {
+      /* title, fire twice = SET UP, hold RIGHT on the year, LEFT once,
+       * fire through the fields and out */
+      in.right = frame >= 24 && frame < 70;
+      in.left = frame == 75;
+      in.fire = (frame >= 12 && frame < 14) || (frame >= 16 && frame < 18) ||
+                frame == 80 || frame == 90 || frame == 100 || frame == 104 || frame == 108;
     }
     game_tick(&in);
     game_render();

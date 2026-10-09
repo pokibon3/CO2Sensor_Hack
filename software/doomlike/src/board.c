@@ -2,8 +2,8 @@
 #include "board.h"
 
 #define BTN_LEFT_PIN   GPIO_PINS_7
-#define BTN_FIRE_PIN   GPIO_PINS_6
-#define BTN_S2_PIN     GPIO_PINS_2    /* power button, also "right" */
+#define BTN_RIGHT_PIN  GPIO_PINS_6
+#define BTN_S2_PIN     GPIO_PINS_2    /* power button, also fire */
 #define POWER_HOLD_PIN GPIO_PINS_7    /* on GPIOA */
 
 void board_clock_init(void)
@@ -74,7 +74,7 @@ void board_gpio_init(void)
 
   gpio.gpio_mode = GPIO_MODE_INPUT;
   gpio.gpio_pull = GPIO_PULL_UP;
-  gpio.gpio_pins = BTN_LEFT_PIN | BTN_FIRE_PIN | BTN_S2_PIN;
+  gpio.gpio_pins = BTN_LEFT_PIN | BTN_RIGHT_PIN | BTN_S2_PIN;
   gpio_init(GPIOB, &gpio);
 }
 
@@ -132,7 +132,7 @@ bool board_left_pressed(void)
   return gpio_input_data_bit_read(GPIOB, BTN_LEFT_PIN) == RESET;
 }
 
-bool board_fire_pressed(void)
+bool board_right_pressed(void)
 {
-  return gpio_input_data_bit_read(GPIOB, BTN_FIRE_PIN) == RESET;
+  return gpio_input_data_bit_read(GPIOB, BTN_RIGHT_PIN) == RESET;
 }

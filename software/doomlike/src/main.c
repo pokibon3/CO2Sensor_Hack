@@ -1,13 +1,18 @@
 #include "at32f415.h"
+#include "battery.h"
 #include "board.h"
+#include "co2.h"
 #include "game.h"
 #include "gfx.h"
 #include "lt7680.h"
+#include "rtc.h"
+#include "sht3x.h"
 #include "sound.h"
 
 /* DEMON GATE: a DOOM-style raycaster drawn with LT7680B rectangle fills.
- * Controls: PB7 = turn left, S2 (PB2) = turn right, both = forward,
- * PB6 = fire. S2 long press = power on (1 s) / off (5 s, alone).
+ * Controls: PB7 = turn left, PB6 = turn right, both = forward,
+ * S2 (PB2, PWR) = fire. S2 long press = power on (1 s) / off (5 s, alone,
+ * not while playing, where fire is held).
  */
 
 #define POWER_ON_HOLD_MS  1000u
@@ -26,8 +31,77 @@ volatile struct
   uint32_t busy_polls;
   lt_info_t lt;
 } g_diag;
+/* co2_rx_bytes (co2.c) counts bytes from the CO2 module. */
 
 static volatile uint32_t tick_count;
+
+void platform_set_clock(const datetime_t *t)
+{
+  rtc_write(t);
+}
+
+#define CO2_WARMUP_S  20u   /* the factory firmware ignores the first 20 s */
+#define SENSOR_STALE  5u    /* seconds without a reading -> shown as ---- */
+
+static uint32_t uptime_s;
+static uint32_t co2_age = SENSOR_STALE, sht_age = SENSOR_STALE;
+
+/* Once a second: read the SHT3x and ask the CO2 module for a reading.
+ * The board warms the SHT3x up; the factory firmware subtracts 1-4 degC and
+ * adds 2-8 %RH depending on the time since power on, and so do we.
+ */
+static void read_sensors(void)
+{
+  int16_t t, h;
+  int16_t heat = uptime_s < 120u ? 10 : uptime_s < 320u ? 20 : uptime_s < 600u ? 30 : 40;
+
+  uptime_s++;
+  if(sht3x_read(&t, &h))
+  {
+    temp_c10 = (int16_t)(t - heat);
+    h = (int16_t)(h + 2 * heat);
+    humi_pc10 = h > 999 ? 999 : h;
+    sht_age = 0u;
+  }
+  else if(++sht_age >= SENSOR_STALE)
+  {
+    temp_c10 = humi_pc10 = SENSOR_NONE;
+    sht_age = SENSOR_STALE;
+    sht3x_start();     /* in case it was plugged in or reset */
+  }
+
+  if(++co2_age >= SENSOR_STALE)
+  {
+    co2_ppm = SENSOR_NONE;
+    co2_age = SENSOR_STALE;
+  }
+  co2_request();
+}
+
+static void poll_co2(void)
+{
+  int16_t ppm;
+
+  if(co2_poll(&ppm) && uptime_s >= CO2_WARMUP_S)
+  {
+    co2_ppm = ppm;
+    co2_age = 0u;
+  }
+}
+
+/* Clock for the title page, several times a second so the seconds step
+ * evenly.
+ */
+static void read_clock(void)
+{
+  datetime_t t;
+
+  clock_valid = rtc_read(&t);
+  if(clock_valid)
+  {
+    clock_now = t;
+  }
+}
 
 void SysTick_Handler(void)
 {
@@ -91,6 +165,7 @@ int main(void)
   uint32_t done = 0u;
   uint32_t s2_alone = 0u;
   uint32_t sec_ticks = 0u, sec_frames = 0u, sec_ms = 0u;
+  uint32_t clock_ticks = 0u;
   bool s2_locked;
 
   power_on();
@@ -110,6 +185,11 @@ int main(void)
   g_diag.lt = lt_info;
   g_diag.stage = 2u;
 
+  battery_init();
+  read_clock();
+  batt_percent = battery_percent(battery_raw());
+  sht3x_start();
+  co2_init();
   gfx_init();
   game_init(board_cycles());
   game_render();
@@ -143,21 +223,22 @@ int main(void)
     done = now;
 
     in.left = board_left_pressed();
-    in.right = board_s2_pressed();
-    in.fire = board_fire_pressed();
+    in.right = board_right_pressed();
+    in.fire = board_s2_pressed();
     if(s2_locked)
     {
-      s2_locked = in.right;
-      in.right = false;
+      s2_locked = in.fire;
+      in.fire = false;
     }
 
-    s2_alone = (in.right && !in.left && !in.fire) ? s2_alone + pending : 0u;
+    s2_alone = (in.fire && !in.left && !in.right && !game_playing()) ? s2_alone + pending : 0u;
     if(s2_alone >= POWER_OFF_TICKS)
     {
       power_off(true);
     }
 
     sec_ticks += pending;
+    clock_ticks += pending;
     while(pending-- != 0u)
     {
       game_tick(&in);
@@ -171,6 +252,14 @@ int main(void)
       sec_ticks -= GAME_HZ;
       sec_frames = 0u;
       sec_ms = 0u;
+      batt_percent = battery_percent(battery_raw());
+      read_sensors();
+    }
+    poll_co2();
+    if(clock_ticks >= GAME_HZ / 5u)
+    {
+      clock_ticks = 0u;
+      read_clock();
     }
 
     t0 = board_cycles();
