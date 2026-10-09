@@ -2,7 +2,7 @@
  * input sequence and writes selected frames as PPM.
  *
  *   cc -O2 -Isrc -o host_sim tools/host_sim.c src/game.c src/render.c \
- *      src/font.c src/levels.c src/art.c -lm
+ *      src/font.c src/levels.c src/art.c src/textures.c -lm
  *   ./host_sim OUTDIR
  */
 #include <stdio.h>
@@ -74,6 +74,10 @@ static void check_levels(void)
          strpbrk(y == 0 || y == MAP_H - 1 ? r : (char[]){r[0], r[MAP_W - 1], 0}, ".Pizha") != NULL)
       { printf("level %d row %d: open border\n", l, y); exit(1); }
     }
+  for(int t = CELL_STONE; t < CELL_TYPES; t++)
+    for(int j = 0; j < TEX_SIZE; j++)
+      if((int)strlen(textures[t].rows[j]) != TEX_SIZE || strspn(textures[t].rows[j], "0123") != TEX_SIZE)
+      { printf("texture %d row %d bad\n", t, j); exit(1); }
   for(int a = 0; a < ART_COUNT; a++)
     for(int j = 0; j < arts[a].h; j++)
       if((int)strlen(arts[a].rows[j]) != arts[a].w) { printf("art %d row %d: length %zu (w %d)\n", a, j, strlen(arts[a].rows[j]), arts[a].w); exit(1); }
@@ -104,6 +108,8 @@ int main(int argc, char **argv)
 
   check_levels();
   game_init(1);
+  perf_fps = 30;
+  perf_ms = 18;
   for(int frame = 0; frame < 600; frame++)
   {
     input_t in;

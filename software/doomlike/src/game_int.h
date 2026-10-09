@@ -72,4 +72,14 @@ const uint8_t *palette_rgb(char c);   /* NULL for transparent/unknown */
 
 bool map_solid(int x, int y);
 
+/* Wall textures, 16 x 16, indexed by cell type. */
+#define TEX_SIZE 16
+typedef struct
+{
+  uint8_t rgb[4][3];
+  const char *rows[TEX_SIZE];
+} texture_t;
+
+extern const texture_t textures[CELL_TYPES];
+
 #endif

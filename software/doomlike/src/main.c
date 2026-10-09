@@ -90,6 +90,7 @@ int main(void)
 {
   uint32_t done = 0u;
   uint32_t s2_alone = 0u;
+  uint32_t sec_ticks = 0u, sec_frames = 0u, sec_ms = 0u;
   bool s2_locked;
 
   power_on();
@@ -156,11 +157,20 @@ int main(void)
       power_off(true);
     }
 
+    sec_ticks += pending;
     while(pending-- != 0u)
     {
       game_tick(&in);
       sound_tick();
       g_diag.ticks++;
+    }
+    if(sec_ticks >= GAME_HZ)
+    {
+      perf_fps = (uint16_t)sec_frames;
+      perf_ms = (uint16_t)sec_ms;
+      sec_ticks -= GAME_HZ;
+      sec_frames = 0u;
+      sec_ms = 0u;
     }
 
     t0 = board_cycles();
@@ -169,6 +179,11 @@ int main(void)
     if(g_diag.render_us > g_diag.render_us_max)
     {
       g_diag.render_us_max = g_diag.render_us;
+    }
+    sec_frames++;
+    if((g_diag.render_us + 999u) / 1000u > sec_ms)
+    {
+      sec_ms = (g_diag.render_us + 999u) / 1000u;
     }
     g_diag.rects = gfx_rects;
     g_diag.busy_polls = lt_busy_polls;

@@ -20,20 +20,16 @@
 #define MM_CELL    7
 #define PANEL_X    160
 
-static const uint8_t wall_rgb[CELL_TYPES][3] = {
-  {0, 0, 0},
-  {150, 150, 150},   /* stone */
-  {175, 75, 50},     /* brick */
-  {70, 100, 180},    /* tech */
-  {150, 105, 60},    /* wood */
-  {40, 190, 70},     /* exit */
-};
+/* Below this wall height (2 px per texel) the column is one flat colour. */
+#define TEX_MIN_H  (2 * TEX_SIZE)
+
 static const uint8_t floor_rgb[3] = {115, 90, 65};
 static const uint8_t ceil_rgb[3] = {75, 75, 90};
-static const uint8_t band_rgb[3] = {150, 230, 255};
-static const uint8_t switch_rgb[3] = {250, 220, 60};
 
 static float zbuf[RAYS];
+
+uint16_t perf_fps;
+uint16_t perf_ms;
 
 /* Fill clipped to the 3D view. */
 static void view_fill(int x, int y, int w, int h, uint16_t color)
@@ -199,23 +195,39 @@ static void draw_walls(void)
       int top = HORIZON - h / 2;
       int b = fog(perp);
       int x = c * COL_W;
+      const texture_t *t = &textures[cell];
+      int u = (int)((uint32_t)frac >> 12);      /* texel column 0..15 */
 
+      if((side == 0 && rx > 0) || (side == 1 && ry < 0))
+      {
+        u = TEX_SIZE - 1 - u;
+      }
       if(side == 1)
       {
         b = b * 3 / 4;
       }
-      if(frac < 0x0C00 || frac > 0xF400)
+      if(h < TEX_MIN_H)
       {
-        b = b * 5 / 8;              /* block seams */
+        view_fill(x, top, COL_W, h, shade(t->rgb[1], b));
+        continue;
       }
-      view_fill(x, top, COL_W, h, shade(wall_rgb[cell], b));
-      if(cell == CELL_TECH)
+      /* one rectangle per run of equal texels in column u */
+      for(int v = 0; v < TEX_SIZE;)
       {
-        view_fill(x, top + h * 7 / 16, COL_W, h / 8 + 1, shade(band_rgb, b));
-      }
-      else if(cell == CELL_EXIT && frac > 0x5000 && frac < 0xB000)
-      {
-        view_fill(x, top + h * 3 / 8, COL_W, h / 4, shade(switch_rgb, b));
+        char ch = t->rows[v][u];
+        int v0 = v;
+        int y0, y1;
+
+        while(v < TEX_SIZE && t->rows[v][u] == ch)
+        {
+          v++;
+        }
+        y0 = top + h * v0 / TEX_SIZE;
+        y1 = top + h * v / TEX_SIZE;
+        if(y1 > 0 && y0 < VIEW_H)
+        {
+          view_fill(x, y0, COL_W, y1 - y0, shade(t->rgb[ch - '0'], b));
+        }
       }
     }
   }
@@ -418,6 +430,7 @@ typedef struct
   uint8_t level;
   int16_t hp, ammo, kills;
   int8_t mx, my;
+  uint16_t fps, ms;
 } hud_cache_t;
 
 static hud_cache_t hud[2];
@@ -427,7 +440,7 @@ static uint16_t cell_color(int x, int y)
   uint8_t c = g.map[y][x];
   if(c == CELL_FLOOR) return RGB565(40, 36, 32);
   if(c == CELL_EXIT) return RGB565(40, 200, 70);
-  return RGB565(wall_rgb[c][0] * 3 / 4, wall_rgb[c][1] * 3 / 4, wall_rgb[c][2] * 3 / 4);
+  return RGB565(textures[c].rgb[1][0] * 3 / 4, textures[c].rgb[1][1] * 3 / 4, textures[c].rgb[1][2] * 3 / 4);
 }
 
 static void draw_minimap(void)
@@ -476,6 +489,7 @@ static void draw_hud(void)
     h->level = g.level;
     h->hp = h->ammo = h->kills = -1;
     h->mx = h->my = -1;
+    h->fps = h->ms = 0xFFFFu;
   }
   if(h->hp != p->hp)
   {
@@ -495,6 +509,15 @@ static void draw_hud(void)
     gfx_fill(PANEL_X + 66, HUD_Y + 152, SCREEN_W - PANEL_X - 66, 14, RGB565(30, 30, 36));
     text_draw(PANEL_X + 66, HUD_Y + 152, s, 2, RGB565(220, 220, 220));
     h->kills = g.kills;
+  }
+  if(h->fps != perf_fps || h->ms != perf_ms)
+  {
+    char s[24];
+    snprintf(s, sizeof(s), "%dFPS %dMS", perf_fps, perf_ms);
+    gfx_fill(MM_X, HUD_Y + 152, PANEL_X - MM_X - 4, 14, RGB565(30, 30, 36));
+    text_draw(MM_X, HUD_Y + 152, s, 2, RGB565(120, 180, 220));
+    h->fps = perf_fps;
+    h->ms = perf_ms;
   }
   if(h->mx != mx || h->my != my)
   {

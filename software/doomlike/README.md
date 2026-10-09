@@ -15,7 +15,7 @@ Three levels. Imps throw fireballs, brutes bite at close range. Health and ammo 
 
 ## Rendering
 
-- Walls: one fixed-point DDA ray per 2-pixel column, one filled rectangle per column. Brightness falls off with distance in steps of 1/16 so colours stay steady; side walls are darker and block edges are shaded as seams. Tech walls get a light band, the exit switch a yellow plate.
+- Walls: one fixed-point DDA ray per 2-pixel column. Each wall type has a 16 x 16 texture (`src/textures.c`); a column is drawn as one rectangle per vertical run of equal texels. The patterns are made of horizontal joints, and shades change only where a joint already splits a column, so a column needs about 3-7 rectangles. Walls lower than 32 px (texels under 2 px) are drawn as one flat rectangle. Brightness falls off with distance in steps of 1/16 so colours stay steady; side walls are darker.
 - Floor and ceiling: horizontal bands of equal brightness (about 30 rectangles).
 - Sprites: pixel art from `src/art.c`, scaled per texel column and clipped against the wall depth of each column. Each vertical run of one colour is one rectangle.
 - Double buffering: two canvases in the LT7680B SDRAM (0x000000 and 0x080000). The finished canvas becomes the main window (REG20-23); the next frame is drawn into the other (REG50-53).
@@ -31,6 +31,7 @@ LT7680B geometry engine: REG68-6F start/end point, REGD2-D4 colour, REG76 = 0xE0
 | `src/render.c` | Raycasting, floor/ceiling bands, sprites, weapon, status panel, title and win pages |
 | `src/levels.c` | The three 20 x 20 maps |
 | `src/art.c` | Sprite art and palette |
+| `src/textures.c` | 16 x 16 wall textures (stone, brick, tech, wood, exit switch) |
 | `src/font.c` | 5 x 7 font drawn as rectangles |
 | `src/gfx.h`, `src/gfx_lt.c` | Portrait rectangle API and double buffering on the LT7680B |
 | `src/lt7680.c` | Driver from `../invaders`, plus hardware rectangle fill and buffer switching |
@@ -40,16 +41,16 @@ LT7680B geometry engine: REG68-6F start/end point, REGD2-D4 colour, REG76 = 0xE0
 
 ## Host simulator
 
-`tools/host_sim.c` builds the game with a software framebuffer, plays a scripted input sequence and writes frames as PPM. It also checks the map and art row lengths.
+`tools/host_sim.c` builds the game with a software framebuffer, plays a scripted input sequence and writes frames as PPM. It also checks the map, texture and art row lengths.
 
 ```sh
-cc -O2 -Isrc -o host_sim tools/host_sim.c src/game.c src/render.c src/font.c src/levels.c src/art.c -lm
+cc -O2 -Isrc -o host_sim tools/host_sim.c src/game.c src/render.c src/font.c src/levels.c src/art.c src/textures.c -lm
 ./host_sim OUTDIR        # walk through level 1
 ./host_sim OUTDIR 1      # stand in front of an imp and shoot it
 python3 tools/ppm2png.py OUTDIR/*.ppm
 ```
 
-A frame needs about 220-320 rectangles in play and up to about 630 on the title page.
+A frame needs about 220-700 rectangles in play (most when a near wall fills the view) and about 570 on the title page.
 
 ## Flashing
 
@@ -61,6 +62,12 @@ python3 ../../tools/openocd.py \
   -c "init; halt; cortex_m maskisr on; mww 0xE0042004 0x300; mww 0xE000E010 0; mww 0xE000E180 0xFFFFFFFF; mww 0xE000E280 0xFFFFFFFF; flash write_image erase .pio/build/at32f415cbt7/firmware.elf; verify_image .pio/build/at32f415cbt7/firmware.elf; cortex_m maskisr auto; reset run; exit"
 ```
 
+## Frame rate
+
+The status panel shows `nnFPS nnMS` under the minimap, updated once per second: frames drawn in the last second (at most 30, one per game tick) and the slowest frame's draw time in ms. SWD memory reads fail while the game runs (see below), so this display is the way to measure it.
+
 ## Status (2026-10-09)
 
-On hardware: title page, 3D view, status panel, controls and sound work, and movement looked smooth. The frame rate has not been measured: while the game runs, SWD memory reads fail (the CPU can be halted, but `mdw &g_diag` returns nothing), as with the sflash firmware when S2 is not held. See `../../tools/README.md`.
+On hardware: title page, 3D view, textured walls, status panel, controls and sound work. With flat walls a frame took at most 15 ms; with textured walls at most 20 ms (close to a wall). The game keeps 30 fps.
+
+While the game runs, SWD fails to reach the core (the probe sees the DP, but memory access fails), as with the sflash firmware. Holding S2 makes it work: flash while S2 is held. The firmware stops counting the 5 s power-off press once it is halted.
