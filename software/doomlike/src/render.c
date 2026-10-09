@@ -4,6 +4,7 @@
 #include "game.h"
 #include "game_int.h"
 #include "gfx.h"
+#include "title.h"
 
 /* Portrait layout: 3D view on top, status panel below. */
 #define VIEW_H     304
@@ -533,23 +534,6 @@ static void draw_hud(void)
 
 /* ---- full-screen pages ---- */
 
-static void draw_title(void)
-{
-  const art_t *imp = &arts[ART_IMP_ATK];
-
-  gfx_fill(0, 0, SCREEN_W, SCREEN_H, RGB565(12, 6, 6));
-  text_center(40, "DEMON", 7, RGB565(220, 40, 30));
-  text_center(104, "GATE", 7, RGB565(220, 40, 30));
-  draw_art_rows(imp, (SCREEN_W - imp->w * 8) / 2, 176, 8, false, SCREEN_H);
-  text_center(320, "LEFT/RIGHT: TURN", 2, RGB565(200, 200, 200));
-  text_center(344, "BOTH: FORWARD", 2, RGB565(200, 200, 200));
-  text_center(368, "FIRE: SHOOT", 2, RGB565(200, 200, 200));
-  if((g.timer / 15u) % 2u == 0u)
-  {
-    text_center(416, "PRESS FIRE", 3, RGB565(250, 220, 60));
-  }
-}
-
 static void draw_win(void)
 {
   char s[24];
@@ -564,6 +548,9 @@ static void draw_win(void)
   }
 }
 
+/* The title page is drawn once per buffer. */
+static bool title_valid[2];
+
 void game_render(void)
 {
   gfx_frame_begin();
@@ -572,15 +559,18 @@ void game_render(void)
     hud[0].valid = hud[1].valid = false;
     if(g.state == ST_TITLE)
     {
-      draw_title();
+      title_draw(!title_valid[gfx_back()], (g.timer / 15u) % 2u == 0u);
+      title_valid[gfx_back()] = true;
     }
     else
     {
+      title_valid[0] = title_valid[1] = false;
       draw_win();
     }
   }
   else
   {
+    title_valid[0] = title_valid[1] = false;
     draw_background();
     draw_walls();
     draw_sprites();

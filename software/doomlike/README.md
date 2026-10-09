@@ -28,7 +28,8 @@ LT7680B geometry engine: REG68-6F start/end point, REGD2-D4 colour, REG76 = 0xE0
 | File | Role |
 |---|---|
 | `src/game.c` | Game logic at 30 Hz: player movement and wall sliding, hitscan, monster AI, fireballs, pickups, level flow |
-| `src/render.c` | Raycasting, floor/ceiling bands, sprites, weapon, status panel, title and win pages |
+| `src/render.c` | Raycasting, floor/ceiling bands, sprites, weapon, status panel, win page |
+| `src/title.c` | Title page: DOOM-style logo, burning sky, mountains, gate with an imp |
 | `src/levels.c` | The three 20 x 20 maps |
 | `src/art.c` | Sprite art and palette |
 | `src/textures.c` | 16 x 16 wall textures (stone, brick, tech, wood, exit switch) |
@@ -44,13 +45,13 @@ LT7680B geometry engine: REG68-6F start/end point, REGD2-D4 colour, REG76 = 0xE0
 `tools/host_sim.c` builds the game with a software framebuffer, plays a scripted input sequence and writes frames as PPM. It also checks the map, texture and art row lengths.
 
 ```sh
-cc -O2 -Isrc -o host_sim tools/host_sim.c src/game.c src/render.c src/font.c src/levels.c src/art.c src/textures.c -lm
+cc -O2 -Isrc -o host_sim tools/host_sim.c src/game.c src/render.c src/title.c src/font.c src/levels.c src/art.c src/textures.c -lm
 ./host_sim OUTDIR        # walk through level 1
 ./host_sim OUTDIR 1      # stand in front of an imp and shoot it
 python3 tools/ppm2png.py OUTDIR/*.ppm
 ```
 
-A frame needs about 220-700 rectangles in play (most when a near wall fills the view) and about 570 on the title page.
+A frame needs about 220-700 rectangles in play (most when a near wall fills the view) The title page is about 2000 rectangles, so it is drawn once into each buffer; after that only the blinking PRESS FIRE line is redrawn.
 
 ## Flashing
 

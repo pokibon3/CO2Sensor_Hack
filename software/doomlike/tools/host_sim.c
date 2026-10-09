@@ -2,7 +2,7 @@
  * input sequence and writes selected frames as PPM.
  *
  *   cc -O2 -Isrc -o host_sim tools/host_sim.c src/game.c src/render.c \
- *      src/font.c src/levels.c src/art.c src/textures.c -lm
+ *      src/title.c src/font.c src/levels.c src/art.c src/textures.c -lm
  *   ./host_sim OUTDIR
  */
 #include <stdio.h>
