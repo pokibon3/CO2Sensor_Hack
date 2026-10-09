@@ -6,10 +6,10 @@ AT32F415CBT7＋LT7680B＋4.3インチ液晶（480×272）のCO2モニター基�
 
 | フォルダ | 内容 |
 |---|---|
-| `analysis/` | 基板の解析結果：レポート（`README.md`）、写真、工場ファームとW25Q32のバックアップ、Flashから取り出した画像 |
+| `analysis/` | 基板の解析結果：レポート（`README.md`）、写真。工場ファームとW25Q32のダンプはリポジトリに含めない |
 | `software/colorbar_sample/` | LT7680Bのカラーバー表示サンプル（最初の動作確認用） |
 | `software/invaders/` | ALIEN RAID（8080エミュレータ上で動くインベーダー風ゲーム）とW25Q32読み書きツール |
-| `tools/` | `backup_flash.py`：MCU内蔵FlashとW25Q32をSWDでバックアップする（使い方は `tools/README.md`） |
+| `tools/` | `backup_flash.py`：MCU内蔵FlashとW25Q32をSWDでバックアップする（使い方は `tools/README.md`）。ダンプは各自このツールで取得する。OpenOCDの環境構築は `tools/openocd_setup.md` |
 
 ## 要点
 

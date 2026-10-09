@@ -8,7 +8,7 @@ AT32F415の内蔵FlashとW25Q32の内容をSWDで読み出し、ファイルに�
 
 - Raspberry Pi Debug ProbeをJ1（SWCLK、SWDIO、GND）に接続する。配線は `../analysis/README.md` を参照
 - 基板はS2で電源を入れる。Probeからは給電しない
-- PlatformIOとAT32用OpenOCD（`~/.platformio/packages/tool-openocd-at32`）が必要。sflashファームが未ビルドなら、`all` の実行時に `pio run -e sflash` でビルドする
+- PlatformIOとAT32用OpenOCD（`~/.platformio/packages/tool-openocd-at32`）が必要。環境構築は `openocd_setup.md` を参照。sflashファームが未ビルドなら、`all` の実行時に `pio run -e sflash` でビルドする
 
 ### 使い方
 
@@ -32,7 +32,7 @@ python3 tools/backup_flash.py all        # 両方。最後にMCUの内容を書�
 | `w25q32_factory.bin` | W25Q32全体（4 MB） |
 | `SHA256SUMS` | 上記のSHA256 |
 
-保存時に `analysis/factory_dump/` のファイルとハッシュを比較し、一致するかどうかを表示する。
+保存時に、作者の個体から取得したダンプのSHA256（`analysis/README.md` に記載）と比較し、一致するかどうかを表示する。ダンプそのものはメーカーの著作物のため、リポジトリには含めない。`backups/` もコミットしないこと。
 
 ### `all` の流れ
 
@@ -45,6 +45,6 @@ python3 tools/backup_flash.py all        # 両方。最後にMCUの内容を書�
 
 ### 注意
 
-- 先に `mcu` だけを実行し、結果が工場ダンプと一致することを確認してから `all` を使う
+- 先に `mcu` だけを実行し、2回の読出しが一致して保存できたことを確認してから `all` を使う
 - 内蔵Flashが全部0と読める場合は、読出し保護（FAP）が有効の可能性があるとして中止する。FAPの解除は全消去を伴うため、このスクリプトでは解除しない
 - 通信が不安定な場合は配線を短くし、GNDを確実にする

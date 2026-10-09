@@ -13,6 +13,8 @@
 
 ## 工場ファームとFlashのバックアップ（`factory_dump/`）
 
+ダンプと取り出した画像はメーカーの著作物のため、リポジトリには含めない（`.gitignore`で除外）。公開するのは取得ツールと使い方だけで、ダンプは `../tools/backup_flash.py` で各自取得する（`../tools/README.md`）。以下は作者の手元にあるファイルの説明。
+
 - `factory_firmware.bin` — AT32F415の出荷時Flash全体（128 KB、SHA256 `0ffef943…e230`）。読み出し時点でFAPは無効
 - `user_system_data.bin` — ユーザーシステムデータ
 - `w25q32_factory.bin` — W25Q32の出荷時内容全体（4 MB、SHA256 `5b130150…d705`）。使用領域は0x000000〜0x1063BF
