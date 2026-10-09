@@ -7,14 +7,36 @@
   sflash.py erase4k ADDR
   sflash.py write IN.bin ADDR                (erases 4 KB sectors first, then verifies)
 """
-import os, socket, subprocess, sys, tempfile, time
+import os, platform, socket, subprocess, sys, tempfile, time
 
 OCD = os.path.expanduser('~/.platformio/packages/tool-openocd-at32')
+EXE = '.exe' if os.name == 'nt' else ''
 ELF = os.path.join(os.path.dirname(__file__), '..', '.pio', 'build', 'sflash', 'firmware.elf')
 NM = os.path.expanduser('~/.platformio/packages/toolchain-gccarmnoneeabi/bin/arm-none-eabi-nm')
 FLASH_SIZE = 0x400000
 BUF = 16384
 CMD_ID, CMD_READ, CMD_ERASE4K, CMD_ERASE64K, CMD_PROGRAM = 1, 2, 3, 4, 5
+
+
+def openocd_bin():
+    """OpenOCD binary for this OS/CPU from the bin-<os>_<arch> directories."""
+    system = platform.system().lower()
+    machine = platform.machine().lower()
+    arch = {'arm64': 'aarch64', 'amd64': 'x86_64', 'x64': 'x86_64'}.get(machine, machine)
+    if system == 'darwin':
+        name = 'darwin_arm64' if arch == 'aarch64' else 'darwin_x86_64'
+    elif system == 'windows':
+        name = 'windows_amd64' if arch in ('x86_64', 'aarch64') else 'windows_x86'
+    elif system == 'linux' and arch in ('x86_64', 'aarch64'):
+        name = 'linux_' + arch
+    elif system == 'linux' and arch.startswith('armv7'):
+        name = 'linux_armv7l'
+    else:
+        raise SystemExit(f'no OpenOCD binary for {platform.system()} {platform.machine()}')
+    path = os.path.join(OCD, 'bin-' + name, 'openocd' + EXE)
+    if not os.path.exists(path):
+        raise SystemExit(f'{path} not found; see tools/openocd_setup.md')
+    return path
 
 
 def mbox_addr():
@@ -27,7 +49,7 @@ def mbox_addr():
 class OpenOCD:
     def __init__(self):
         self.proc = subprocess.Popen(
-            [OCD + '/bin-darwin_arm64/openocd', '-s', OCD + '/scripts', '-f', 'interface/cmsis-dap.cfg',
+            [openocd_bin(), '-s', OCD + '/scripts', '-f', 'interface/cmsis-dap.cfg',
              '-f', 'target/at32f415xx.cfg', '-c', 'adapter speed 4000', '-c', 'tcl_port 6666',
              '-c', 'gdb_port disabled', '-c', 'telnet_port disabled', '-c', 'init'],
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)

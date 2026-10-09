@@ -106,8 +106,7 @@ def backup_spiflash(outdir):
 
 
 def openocd(commands):
-    ocd = sflash.OCD
-    subprocess.run([ocd + '/bin-darwin_arm64/openocd', '-s', ocd + '/scripts',
+    subprocess.run([sflash.openocd_bin(), '-s', sflash.OCD + '/scripts',
                     '-f', 'interface/cmsis-dap.cfg', '-f', 'target/at32f415xx.cfg',
                     '-c', 'adapter speed 1000', '-c', f'init; {commands}; exit'], check=True)
 

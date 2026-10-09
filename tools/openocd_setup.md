@@ -36,7 +36,7 @@ $OCD/bin-darwin_arm64/openocd --version
 ls $OCD/scripts/target/at32f415xx.cfg
 ```
 
-Intel Macでは `bin-darwin_x86_64`、Linuxでは `bin-linux_x86_64` などを使う。ただし `backup_flash.py` と `sflash.py` は `bin-darwin_arm64` を決め打ちしているため、他の環境ではスクリプト内のパスを書き換える必要がある。
+Intel Macでは `bin-darwin_x86_64`、Linuxでは `bin-linux_x86_64` などを使う。`backup_flash.py` と `sflash.py` は、実行中のOSとCPUから `bin-<OS>_<CPU>` を自動で選ぶ（macOS、Linux（x86_64、aarch64、armv7l）、Windows）。
 
 ## 4. Debug Probeを確認する
 
