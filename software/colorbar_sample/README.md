@@ -1,0 +1,89 @@
+# AT32F415 + LT7680B LCD color-bar sample
+
+Hardware bring-up program for the DM72D board. It configures the LT7680B and enables its built-in color-bar generator, so it does not depend on the W25Q32JV image contents. **Confirmed working on hardware: color bars are displayed.**
+
+## MCU-to-LT7680B wiring (confirmed)
+
+Read back over SWD from the factory firmware's live register state and confirmed by the working color bar:
+
+| AT32F415 | Physical MCU pin | LT7680B / function |
+|---|---:|---|
+| PB12 | 25 | SCS# (GPIO, software CS) |
+| PB13 | 26 | SCLK (SPI2) |
+| PB14 | 27 | SDO → MCU MISO (SPI2) |
+| PB15 | 28 | SDI ← MCU MOSI (SPI2) |
+| PA8 | 29 | **XI clock, 8 MHz** — the LT7680B has no crystal of its own |
+
+Without the PA8 clock the LT7680B does not respond at all (MISO stays low and every read returns 0x00).
+
+SPI mode 0 reads back correctly at 500 kHz. The factory firmware uses mode 3 at 12 MHz; at low SCK, mode 3 shifts read data right by one bit.
+
+## Board quirks
+
+- **Power-hold latch.** S2 is the power button. The MCU must keep its outputs driven to keep the board powered. Any MCU reset turns the board off. `board_power_hold_init()` reproduces the factory firmware's output state (PA0/PA7/PA11/PA15/PB0/PB1/PB3/PB4 high, PA4/PC15 low) as the first action in `main()`. The exact hold pin has not been isolated.
+- **Watchdog in factory firmware.** The factory firmware starts the WDT. A halted CPU therefore resets after a short time, which drops power and makes SWD disappear. Set `DEBUG_CTRL.WDT_PAUSE` (`mww 0xE0042004 0x300`) right after halting. This sample does not use the WDT.
+
+## LCD / LT7680B settings (from factory firmware)
+
+- HXX043LB0701, 480 x 272, RGB
+- PLL with XI = 8 MHz, R = 2, OD = 3: PCLK N = 9 (4.5 MHz), MCLK N = CCLK N = 100 (50 MHz)
+- Horizontal: non-display 39, sync start 8, sync width 4
+- Vertical: non-display 8, sync start 8, sync width 4
+- REG12: PCLK falling edge. REG13: HSYNC/VSYNC active low, DE active high
+- SDRAM: REGE0 = 0x29, REGE1 = 0x03, refresh 779
+
+## Build
+
+```sh
+pio run
+```
+
+## Upload with Raspberry Pi Debug Probe
+
+J1 wiring:
+
+| J1 | Signal | Debug Probe |
+|---:|---|---|
+| 1 | 3.3 V | leave open |
+| 2 | SWCLK | SC |
+| 3 | SWDIO | SD |
+| 4 | GND | GND |
+
+Power the board with S2. Do not power the board from the probe.
+
+Do not use `pio run -t upload`: OpenOCD's `program` resets the target first, and the reset drops board power. Flash while halted instead, then reset:
+
+```sh
+OCD=~/.platformio/packages/tool-openocd-at32
+$OCD/bin-darwin_arm64/openocd -s $OCD/scripts \
+  -f interface/cmsis-dap.cfg -f target/at32f415xx.cfg \
+  -c "adapter speed 1000" \
+  -c "init; halt; mww 0xE0042004 0x300; flash write_image erase .pio/build/at32f415cbt7/firmware.elf; verify_image .pio/build/at32f415cbt7/firmware.elf; reset run; exit"
+```
+
+If the flash is blank or broken (nothing holds power), keep S2 pressed during the whole upload.
+
+## Diagnostics
+
+`g_diag` in RAM can be read over SWD (`mdw &g_diag 2`):
+
+| stage | Meaning |
+|---|---|
+| 1 | SPI initialised |
+| 2 | LT7680B status OK and register read-back OK |
+| 3 | Color bar configured. Status/REG00/REG01/REG12 are captured in the next word |
+| 0xE1 | LT7680B never left power-saving state |
+| 0xE2 | Register write/read-back mismatch (check the PA8 clock and the SPI mode) |
+
+Known-good capture: `00000003 e0908054`, i.e. status 0x54, REG00 0x80, REG01 0x90, REG12 0xE0.
+
+## Factory firmware
+
+A full backup is in `../../analysis/factory_dump/factory_firmware.bin` (128 KB, FAP disabled at the time of the dump). To restore it, write that file at 0x08000000 using the same halted-flash procedure.
+
+## Sources
+
+- Levetop LT768x datasheet V4.2
+- Levetop LT768x Arduino reference library (official download)
+- ArteryTek AT32F415 firmware library
+- Disassembly of the factory firmware backup

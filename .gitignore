@@ -1,0 +1,16 @@
+# PlatformIO build output and caches
+.pio/
+.vscode/
+
+# Host-side build/test artifacts
+__pycache__/
+*.pyc
+*.o
+*.ppm
+
+# OS / editor
+.DS_Store
+*.swp
+
+# Claude Code local state
+.claude/

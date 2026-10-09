@@ -1,0 +1,1285 @@
+0000                      ORG  0
+0000  C3 30 00            JMP  START
+0003                      ORG  8              ; RST 1 : mid frame
+0008  FB                  EI
+0009  C9                  RET
+000A                      ORG  10H            ; RST 2 : end of frame
+0010  C3 20 00            JMP  ISR_FRAME
+0013                      ORG  20H
+0020  F5                  PUSH PSW
+0021  3A 01 20            LDA  FRAMECNT
+0024  3C                  INR  A
+0025  32 01 20            STA  FRAMECNT
+0028  3E 01               MVI  A, 1
+002A  32 00 20            STA  FRAMEFLG
+002D  F1                  POP  PSW
+002E  FB                  EI
+002F  C9                  RET
+0030  31 00 24            LXI  SP, STACKTOP
+0033  21 00 20            LXI  H, 2000H
+0036  36 00       CLRRAM: MVI  M, 0
+0038  23                  INX  H
+0039  7C                  MOV  A, H
+003A  FE 24               CPI  24H
+003C  C2 36 00            JNZ  CLRRAM
+003F  21 E1 AC            LXI  H, 0ACE1H
+0042  22 02 20            SHLD RNGL
+0045  FB                  EI
+0046  C3 49 00            JMP  ATTRACT
+0049  AF                  XRA  A
+004A  32 04 20            STA  STATE
+004D  CD F9 08            CALL CLS
+0050  CD AC 07            CALL DRAWSCORES
+0053  CD 22 08            CALL DRAWLINE
+0056  21 8C 09            LXI  H, STR_TITLE
+0059  11 C8 48            LXI  D, 72*256+200
+005C  CD 57 08            CALL DRAWSTR
+005F  21 97 09            LXI  H, STR_PUSH
+0062  11 A0 48            LXI  D, 72*256+160
+0065  CD 57 08            CALL DRAWSTR
+0068  21 87 0C            LXI  H, SPR_UFO
+006B  11 80 28            LXI  D, 40*256+128
+006E  06 14               MVI  B, 20
+0070  CD 94 08            CALL DRAWSPR
+0073  21 DC 09            LXI  H, STR_PMYS
+0076  11 80 40            LXI  D, 64*256+128
+0079  CD 57 08            CALL DRAWSTR
+007C  21 E7 0B            LXI  H, SPR_A0
+007F  11 70 2C            LXI  D, 44*256+112
+0082  06 10               MVI  B, 16
+0084  CD 94 08            CALL DRAWSPR
+0087  21 BB 09            LXI  H, STR_P30
+008A  11 70 40            LXI  D, 64*256+112
+008D  CD 57 08            CALL DRAWSTR
+0090  21 07 0C            LXI  H, SPR_B0
+0093  11 60 2C            LXI  D, 44*256+96
+0096  06 10               MVI  B, 16
+0098  CD 94 08            CALL DRAWSPR
+009B  21 C6 09            LXI  H, STR_P20
+009E  11 60 40            LXI  D, 64*256+96
+00A1  CD 57 08            CALL DRAWSTR
+00A4  21 27 0C            LXI  H, SPR_C0
+00A7  11 50 2C            LXI  D, 44*256+80
+00AA  06 10               MVI  B, 16
+00AC  CD 94 08            CALL DRAWSPR
+00AF  21 D1 09            LXI  H, STR_P10
+00B2  11 50 40            LXI  D, 64*256+80
+00B5  CD 57 08            CALL DRAWSTR
+00B8  CD 21 09    ATLOOP: CALL WAITF
+00BB  CD 47 09            CALL RAND
+00BE  CD 37 09            CALL READIN
+00C1  3A 35 20            LDA  INNEW
+00C4  E6 14               ANI  IN_START+IN_FIRE
+00C6  CA B8 00            JZ   ATLOOP
+00C9  21 00 00            LXI  H, 0
+00CC  22 05 20            SHLD SCORE
+00CF  3E 03               MVI  A, 3
+00D1  32 09 20            STA  LIVES
+00D4  AF                  XRA  A
+00D5  32 0A 20            STA  WAVE
+00D8  CD F9 08            CALL CLS
+00DB  CD AC 07            CALL DRAWSCORES
+00DE  CD 22 08            CALL DRAWLINE
+00E1  CD EE 07            CALL DRAWLIVES
+00E4  CD 60 01            CALL INITWAVE
+00E7  CD 21 09    GL:     CALL WAITF
+00EA  CD 37 09            CALL READIN
+00ED  3A 04 20            LDA  STATE
+00F0  FE 03               CPI  3
+00F2  CA 4C 01            JZ   GAMEOVER
+00F5  FE 02               CPI  2
+00F7  CA 3D 01            JZ   GL_DYING
+00FA  CD 6C 03            CALL PLAYERUPD
+00FD  CD 9D 03            CALL FIREUPD
+0100  CD C4 03            CALL PBUPD
+0103  CD 70 02            CALL ALSTEP
+0106  CD 70 02            CALL ALSTEP
+0109  CD 3F 05            CALL BOMBUPD
+010C  CD A3 06            CALL UFOUPD
+010F  CD 5F 03            CALL EXPUPD
+0112  3A 2F 20            LDA  INVADED
+0115  B7                  ORA  A
+0116  CA 1E 01            JZ   GL_1
+0119  3E 03               MVI  A, 3
+011B  32 04 20            STA  STATE
+011E  3A 22 20    GL_1:   LDA  AL_CNT
+0121  B7                  ORA  A
+0122  C2 46 01            JNZ  GL_END
+0125  CD EE 04            CALL CLEARSHOTS
+0128  CD A0 07            CALL SCOREUPD
+012B  06 3C               MVI  B, 60
+012D  CD 2D 09            CALL WAITN
+0130  3A 0A 20            LDA  WAVE
+0133  3C                  INR  A
+0134  32 0A 20            STA  WAVE
+0137  CD 60 01            CALL INITWAVE
+013A  C3 E7 00            JMP  GL
+013D  CD AA 04            CALL DEATHUPD
+0140  CD 5F 03            CALL EXPUPD
+0143  CD A3 06            CALL UFOUPD
+0146  CD A0 07    GL_END: CALL SCOREUPD
+0149  C3 E7 00            JMP  GL
+014C  21 B1 09            LXI  H, STR_OVER
+014F  11 C0 4C            LXI  D, 76*256+192
+0152  CD 57 08            CALL DRAWSTR
+0155  CD BE 07            CALL SCOREVAL
+0158  06 B4               MVI  B, 180
+015A  CD 2D 09            CALL WAITN
+015D  C3 49 00            JMP  ATTRACT
+0160  CD 06 09            CALL CLRFIELD
+0163  16 1E               MVI  D, 30
+0165  CD 28 02            CALL DRAWSHIELD
+0168  16 4E               MVI  D, 78
+016A  CD 28 02            CALL DRAWSHIELD
+016D  16 7E               MVI  D, 126
+016F  CD 28 02            CALL DRAWSHIELD
+0172  16 AE               MVI  D, 174
+0174  CD 28 02            CALL DRAWSHIELD
+0177  3A 0A 20            LDA  WAVE
+017A  FE 04               CPI  4
+017C  DA 81 01            JC   IW_1
+017F  3E 04               MVI  A, 4
+0181  87          IW_1:   ADD  A
+0182  87                  ADD  A
+0183  87                  ADD  A
+0184  47                  MOV  B, A
+0185  3E B8               MVI  A, 184
+0187  90                  SUB  B
+0188  32 36 20            STA  TMP
+018B  21 40 20            LXI  H, ALIENS
+018E  0E 00               MVI  C, 0               ; row
+0190  06 00       IW_ROW: MVI  B, 0               ; column index
+0192  16 18               MVI  D, 24              ; screen column
+0194  79                  MOV  A, C
+0195  87                  ADD  A
+0196  87                  ADD  A
+0197  87                  ADD  A
+0198  87                  ADD  A
+0199  5F                  MOV  E, A
+019A  3A 36 20            LDA  TMP
+019D  93                  SUB  E
+019E  5F                  MOV  E, A               ; x of this row
+019F  79                  MOV  A, C
+01A0  B7                  ORA  A
+01A1  3E 00               MVI  A, 0
+01A3  CA B0 01            JZ   IW_T
+01A6  79                  MOV  A, C
+01A7  FE 03               CPI  3
+01A9  3E 01               MVI  A, 1
+01AB  DA B0 01            JC   IW_T
+01AE  3E 02               MVI  A, 2
+01B0  32 37 20    IW_T:   STA  TMP2
+01B3  36 01       IW_COL: MVI  M, 1
+01B5  23                  INX  H
+01B6  72                  MOV  M, D
+01B7  23                  INX  H
+01B8  73                  MOV  M, E
+01B9  23                  INX  H
+01BA  3A 37 20            LDA  TMP2
+01BD  77                  MOV  M, A
+01BE  23                  INX  H
+01BF  7A                  MOV  A, D
+01C0  C6 10               ADI  16
+01C2  57                  MOV  D, A
+01C3  04                  INR  B
+01C4  78                  MOV  A, B
+01C5  FE 0B               CPI  11
+01C7  C2 B3 01            JNZ  IW_COL
+01CA  0C                  INR  C
+01CB  79                  MOV  A, C
+01CC  FE 05               CPI  5
+01CE  C2 90 01            JNZ  IW_ROW
+01D1  AF                  XRA  A
+01D2  32 1D 20            STA  AL_IDX
+01D5  32 1E 20            STA  AL_DIR
+01D8  32 1F 20            STA  AL_MODE
+01DB  32 20 20            STA  AL_EDGE
+01DE  32 21 20            STA  AL_ANIM
+01E1  32 2F 20            STA  INVADED
+01E4  32 0C 20            STA  PB_ACT
+01E7  32 23 20            STA  UFO_ACT
+01EA  32 2C 20            STA  UFO_STMR
+01ED  32 28 20            STA  EXP_TMR
+01F0  32 10 20            STA  BOMBS
+01F3  32 14 20            STA  BOMBS+4
+01F6  32 18 20            STA  BOMBS+8
+01F9  3E 37               MVI  A, 55
+01FB  32 22 20            STA  AL_CNT
+01FE  3E 3C               MVI  A, 60
+0200  32 1C 20            STA  BOMBTMR
+0203  21 58 02            LXI  H, 600
+0206  22 26 20            SHLD UFO_TMR
+0209  21 40 20            LXI  H, ALIENS
+020C  0E 37               MVI  C, 55
+020E  E5                  PUSH H
+020F  C5                  PUSH B
+0210  CD 53 02            CALL DRAWALIEN
+0213  C1                  POP  B
+0214  E1                  POP  H
+0215  23                  INX  H
+0216  23                  INX  H
+0217  23                  INX  H
+0218  23                  INX  H
+0219  0D                  DCR  C
+021A  C2 0E 02            JNZ  IW_DRAW
+021D  3E 68               MVI  A, 104
+021F  32 0B 20            STA  PLX
+0222  3E 01               MVI  A, 1
+0224  32 04 20            STA  STATE
+0227  C9                  RET
+0228  1E 30               MVI  E, SHIELD_X
+022A  CD 7C 08            CALL CALCADDR
+022D  11 9B 0C            LXI  D, SPR_SHIELD
+0230  06 16               MVI  B, 22
+0232  1A          DSH_1:  LDAX D
+0233  77                  MOV  M, A
+0234  13                  INX  D
+0235  23                  INX  H
+0236  1A                  LDAX D
+0237  77                  MOV  M, A
+0238  13                  INX  D
+0239  2B                  DCX  H
+023A  7D                  MOV  A, L
+023B  C6 20               ADI  32
+023D  6F                  MOV  L, A
+023E  D2 42 02            JNC  DSH_2
+0241  24                  INR  H
+0242  05          DSH_2:  DCR  B
+0243  C2 32 02            JNZ  DSH_1
+0246  C9                  RET
+0247  6F                  MOV  L, A
+0248  26 00               MVI  H, 0
+024A  29                  DAD  H
+024B  29                  DAD  H
+024C  D5                  PUSH D
+024D  11 40 20            LXI  D, ALIENS
+0250  19                  DAD  D
+0251  D1                  POP  D
+0252  C9                  RET
+0253  23                  INX  H
+0254  56                  MOV  D, M
+0255  23                  INX  H
+0256  5E                  MOV  E, M
+0257  23                  INX  H
+0258  7E                  MOV  A, M               ; type
+0259  87                  ADD  A
+025A  4F                  MOV  C, A
+025B  3A 21 20            LDA  AL_ANIM
+025E  81                  ADD  C
+025F  87                  ADD  A
+0260  4F                  MOV  C, A
+0261  06 00               MVI  B, 0
+0263  21 60 09            LXI  H, SPRTAB
+0266  09                  DAD  B
+0267  7E                  MOV  A, M
+0268  23                  INX  H
+0269  66                  MOV  H, M
+026A  6F                  MOV  L, A
+026B  06 10               MVI  B, 16
+026D  C3 94 08            JMP  DRAWSPR
+0270  3A 22 20            LDA  AL_CNT
+0273  B7                  ORA  A
+0274  C8                  RZ
+0275  3A 1D 20            LDA  AL_IDX
+0278  FE 37               CPI  55
+027A  DA 84 02            JC   AS_1
+027D  CD E8 02            CALL ENDPASS
+0280  AF                  XRA  A
+0281  32 1D 20            STA  AL_IDX
+0284  CD 47 02    AS_1:   CALL ALIENPTR
+0287  7E                  MOV  A, M
+0288  B7                  ORA  A
+0289  C2 96 02            JNZ  AS_FOUND
+028C  3A 1D 20            LDA  AL_IDX
+028F  3C                  INR  A
+0290  32 1D 20            STA  AL_IDX
+0293  C3 75 02            JMP  AS_FIND
+0296  E5                  PUSH H
+0297  3A 1F 20            LDA  AL_MODE
+029A  B7                  ORA  A
+029B  CA B0 02            JZ   AS_SIDE
+029E  23                  INX  H
+029F  56                  MOV  D, M
+02A0  23                  INX  H
+02A1  5E                  MOV  E, M
+02A2  06 10               MVI  B, 16
+02A4  E5                  PUSH H
+02A5  CD A9 08            CALL CLRSPR
+02A8  E1                  POP  H
+02A9  7E                  MOV  A, M
+02AA  D6 08               SUI  8
+02AC  77                  MOV  M, A
+02AD  C3 CD 02            JMP  AS_DRAW
+02B0  23                  INX  H
+02B1  3A 1E 20            LDA  AL_DIR
+02B4  B7                  ORA  A
+02B5  3E 02               MVI  A, 2
+02B7  CA BC 02            JZ   AS_2
+02BA  3E FE               MVI  A, 0FEH
+02BC  86          AS_2:   ADD  M
+02BD  77                  MOV  M, A
+02BE  FE CE               CPI  206
+02C0  D2 C8 02            JNC  AS_EDGE
+02C3  FE 03               CPI  3
+02C5  D2 CD 02            JNC  AS_DRAW
+02C8  3E 01               MVI  A, 1
+02CA  32 20 20            STA  AL_EDGE
+02CD  E1                  POP  H
+02CE  E5                  PUSH H
+02CF  CD 53 02            CALL DRAWALIEN
+02D2  E1                  POP  H
+02D3  23                  INX  H
+02D4  23                  INX  H
+02D5  7E                  MOV  A, M
+02D6  FE 21               CPI  PLAYER_X+1         ; invaded only when an alien lands on the player row
+02D8  D2 E0 02            JNC  AS_3
+02DB  3E 01               MVI  A, 1
+02DD  32 2F 20            STA  INVADED
+02E0  3A 1D 20    AS_3:   LDA  AL_IDX
+02E3  3C                  INR  A
+02E4  32 1D 20            STA  AL_IDX
+02E7  C9                  RET
+02E8  3A 21 20            LDA  AL_ANIM
+02EB  EE 01               XRI  1
+02ED  32 21 20            STA  AL_ANIM
+02F0  3A 1F 20            LDA  AL_MODE
+02F3  B7                  ORA  A
+02F4  CA FC 02            JZ   EP_1
+02F7  AF                  XRA  A
+02F8  32 1F 20            STA  AL_MODE
+02FB  C9                  RET
+02FC  3A 20 20    EP_1:   LDA  AL_EDGE
+02FF  B7                  ORA  A
+0300  C8                  RZ
+0301  AF                  XRA  A
+0302  32 20 20            STA  AL_EDGE
+0305  3E 01               MVI  A, 1
+0307  32 1F 20            STA  AL_MODE
+030A  3A 1E 20            LDA  AL_DIR
+030D  EE 01               XRI  1
+030F  32 1E 20            STA  AL_DIR
+0312  C9                  RET
+0313  36 00               MVI  M, 0
+0315  3A 22 20            LDA  AL_CNT
+0318  3D                  DCR  A
+0319  32 22 20            STA  AL_CNT
+031C  E5                  PUSH H
+031D  CD 49 03            CALL EXPCLR
+0320  E1                  POP  H
+0321  23                  INX  H
+0322  56                  MOV  D, M
+0323  23                  INX  H
+0324  5E                  MOV  E, M
+0325  23                  INX  H
+0326  7E                  MOV  A, M               ; type 0/1/2 -> 30/20/10 points
+0327  D5                  PUSH D
+0328  87                  ADD  A
+0329  87                  ADD  A
+032A  87                  ADD  A
+032B  87                  ADD  A
+032C  4F                  MOV  C, A
+032D  3E 30               MVI  A, 30H
+032F  91                  SUB  C
+0330  CD 82 07            CALL ADDSCORE
+0333  D1                  POP  D
+0334  7A                  MOV  A, D
+0335  32 29 20            STA  EXP_COL
+0338  7B                  MOV  A, E
+0339  32 2A 20            STA  EXP_X
+033C  3E 0C               MVI  A, 12
+033E  32 28 20            STA  EXP_TMR
+0341  21 77 0C            LXI  H, SPR_EXPL
+0344  06 10               MVI  B, 16
+0346  C3 94 08            JMP  DRAWSPR
+0349  3A 28 20    EXPCLR: LDA  EXP_TMR
+034C  B7                  ORA  A
+034D  C8                  RZ
+034E  AF                  XRA  A
+034F  32 28 20            STA  EXP_TMR
+0352  3A 29 20            LDA  EXP_COL
+0355  57                  MOV  D, A
+0356  3A 2A 20            LDA  EXP_X
+0359  5F                  MOV  E, A
+035A  06 10               MVI  B, 16
+035C  C3 A9 08            JMP  CLRSPR
+035F  3A 28 20    EXPUPD: LDA  EXP_TMR
+0362  B7                  ORA  A
+0363  C8                  RZ
+0364  3D                  DCR  A
+0365  32 28 20            STA  EXP_TMR
+0368  C0                  RNZ
+0369  C3 52 03            JMP  EXPCLR0
+036C  3A 34 20            LDA  INHELD
+036F  47                  MOV  B, A
+0370  3A 0B 20            LDA  PLX
+0373  4F                  MOV  C, A
+0374  78                  MOV  A, B
+0375  E6 20               ANI  IN_LEFT
+0377  CA 81 03            JZ   PU_1
+037A  79                  MOV  A, C
+037B  FE 02               CPI  2
+037D  DA 81 03            JC   PU_1
+0380  0D                  DCR  C
+0381  78          PU_1:   MOV  A, B
+0382  E6 40               ANI  IN_RIGHT
+0384  CA 8E 03            JZ   PU_2
+0387  79                  MOV  A, C
+0388  FE CE               CPI  206
+038A  D2 8E 03            JNC  PU_2
+038D  0C                  INR  C
+038E  79          PU_2:   MOV  A, C
+038F  32 0B 20            STA  PLX
+0392  57                  MOV  D, A
+0393  1E 20               MVI  E, PLAYER_X
+0395  21 47 0C            LXI  H, SPR_PLAYER
+0398  06 10               MVI  B, 16
+039A  C3 94 08            JMP  DRAWSPR
+039D  3A 35 20            LDA  INNEW
+03A0  E6 10               ANI  IN_FIRE
+03A2  C8                  RZ
+03A3  3A 0C 20            LDA  PB_ACT
+03A6  B7                  ORA  A
+03A7  C0                  RNZ
+03A8  3E 01               MVI  A, 1
+03AA  32 0C 20            STA  PB_ACT
+03AD  3A 0B 20            LDA  PLX
+03B0  C6 07               ADI  7
+03B2  32 0D 20            STA  PB_COL
+03B5  47                  MOV  B, A
+03B6  3E 28               MVI  A, PLAYER_X+8
+03B8  32 0E 20            STA  PB_X
+03BB  4F                  MOV  C, A
+03BC  3E 0F               MVI  A, 0FH
+03BE  CD D1 08            CALL PREPBITS
+03C1  C3 E5 08            JMP  ORBITS
+03C4  3A 0C 20    PBUPD:  LDA  PB_ACT
+03C7  B7                  ORA  A
+03C8  C8                  RZ
+03C9  3A 0D 20            LDA  PB_COL
+03CC  47                  MOV  B, A
+03CD  3A 0E 20            LDA  PB_X
+03D0  4F                  MOV  C, A
+03D1  3E 0F               MVI  A, 0FH
+03D3  CD D1 08            CALL PREPBITS
+03D6  CD EE 08            CALL CLRBITS
+03D9  3A 0E 20            LDA  PB_X
+03DC  C6 04               ADI  4
+03DE  32 0E 20            STA  PB_X
+03E1  FE DC               CPI  220
+03E3  D2 00 04            JNC  PB_END
+03E6  4F                  MOV  C, A
+03E7  3A 0D 20            LDA  PB_COL
+03EA  47                  MOV  B, A
+03EB  3E 0F               MVI  A, 0FH
+03ED  CD D1 08            CALL PREPBITS
+03F0  CD DC 08            CALL TESTBITS
+03F3  C2 F9 03            JNZ  PB_HIT
+03F6  C3 E5 08            JMP  ORBITS
+03F9  AF          PB_HIT: XRA  A
+03FA  32 0C 20            STA  PB_ACT
+03FD  C3 05 04            JMP  PBHIT
+0400  AF          PB_END: XRA  A
+0401  32 0C 20            STA  PB_ACT
+0404  C9                  RET
+0405  3A 23 20            LDA  UFO_ACT
+0408  B7                  ORA  A
+0409  CA 26 04            JZ   PH_BOMB
+040C  3A 0E 20            LDA  PB_X
+040F  FE CC               CPI  UFO_X-4
+0411  DA 26 04            JC   PH_BOMB
+0414  3A 24 20            LDA  UFO_COL
+0417  47                  MOV  B, A
+0418  3A 0D 20            LDA  PB_COL
+041B  90                  SUB  B
+041C  D6 02               SUI  2
+041E  FE 10               CPI  16
+0420  D2 26 04            JNC  PH_BOMB
+0423  C3 2D 07            JMP  UFOKILL
+0426  21 10 20            LXI  H, BOMBS
+0429  0E 03               MVI  C, 3
+042B  7E          PH_B1:  MOV  A, M
+042C  B7                  ORA  A
+042D  CA 4B 04            JZ   PH_B2
+0430  23                  INX  H
+0431  3A 0D 20            LDA  PB_COL
+0434  BE                  CMP  M
+0435  2B                  DCX  H
+0436  C2 4B 04            JNZ  PH_B2
+0439  23                  INX  H
+043A  23                  INX  H
+043B  3A 0E 20            LDA  PB_X
+043E  C6 04               ADI  4
+0440  96                  SUB  M
+0441  2B                  DCX  H
+0442  2B                  DCX  H
+0443  FE 0C               CPI  12
+0445  D2 4B 04            JNC  PH_B2
+0448  C3 31 05            JMP  KILLBOMB
+044B  23          PH_B2:  INX  H
+044C  23                  INX  H
+044D  23                  INX  H
+044E  23                  INX  H
+044F  0D                  DCR  C
+0450  C2 2B 04            JNZ  PH_B1
+0453  21 40 20            LXI  H, ALIENS
+0456  0E 00               MVI  C, 0
+0458  7E          PH_A1:  MOV  A, M
+0459  B7                  ORA  A
+045A  CA 7C 04            JZ   PH_A4
+045D  23                  INX  H
+045E  3A 0D 20            LDA  PB_COL
+0461  96                  SUB  M
+0462  D6 02               SUI  2
+0464  FE 0C               CPI  12
+0466  D2 7B 04            JNC  PH_A3
+0469  23                  INX  H
+046A  3A 0E 20            LDA  PB_X
+046D  C6 03               ADI  3
+046F  96                  SUB  M
+0470  FE 0B               CPI  11
+0472  D2 7A 04            JNC  PH_A2
+0475  2B                  DCX  H
+0476  2B                  DCX  H
+0477  C3 13 03            JMP  ALKILL
+047A  2B          PH_A2:  DCX  H
+047B  2B          PH_A3:  DCX  H
+047C  23          PH_A4:  INX  H
+047D  23                  INX  H
+047E  23                  INX  H
+047F  23                  INX  H
+0480  0C                  INR  C
+0481  79                  MOV  A, C
+0482  FE 37               CPI  55
+0484  C2 58 04            JNZ  PH_A1
+0487  3A 0E 20            LDA  PB_X
+048A  FE 2C               CPI  SHIELD_X-4
+048C  D8                  RC
+048D  FE 42               CPI  SHIELD_X+18
+048F  D0                  RNC
+0490  3A 0D 20            LDA  PB_COL
+0493  47                  MOV  B, A
+0494  3A 0E 20            LDA  PB_X
+0497  4F                  MOV  C, A
+0498  3E 0F               MVI  A, 0FH
+049A  C3 6F 06            JMP  CHIP
+049D  3E 02               MVI  A, 2
+049F  32 04 20            STA  STATE
+04A2  3E 64               MVI  A, 100
+04A4  32 2B 20            STA  DEATH_TMR
+04A7  C3 EE 04            JMP  CLEARSHOTS
+04AA  3A 2B 20            LDA  DEATH_TMR
+04AD  3D                  DCR  A
+04AE  32 2B 20            STA  DEATH_TMR
+04B1  CA CA 04            JZ   DU_DONE
+04B4  E6 08               ANI  08H
+04B6  21 57 0C            LXI  H, SPR_PX0
+04B9  CA BF 04            JZ   DU_1
+04BC  21 67 0C            LXI  H, SPR_PX1
+04BF  3A 0B 20    DU_1:   LDA  PLX
+04C2  57                  MOV  D, A
+04C3  1E 20               MVI  E, PLAYER_X
+04C5  06 10               MVI  B, 16
+04C7  C3 94 08            JMP  DRAWSPR
+04CA  3A 0B 20            LDA  PLX
+04CD  57                  MOV  D, A
+04CE  1E 20               MVI  E, PLAYER_X
+04D0  06 10               MVI  B, 16
+04D2  CD A9 08            CALL CLRSPR
+04D5  3A 09 20            LDA  LIVES
+04D8  3D                  DCR  A
+04D9  32 09 20            STA  LIVES
+04DC  CD EE 07            CALL DRAWLIVES
+04DF  3A 09 20            LDA  LIVES
+04E2  B7                  ORA  A
+04E3  3E 03               MVI  A, 3
+04E5  CA EA 04            JZ   DU_2
+04E8  3E 01               MVI  A, 1
+04EA  32 04 20    DU_2:   STA  STATE
+04ED  C9                  RET
+04EE  3A 0C 20            LDA  PB_ACT
+04F1  B7                  ORA  A
+04F2  CA 09 05            JZ   CS_1
+04F5  AF                  XRA  A
+04F6  32 0C 20            STA  PB_ACT
+04F9  3A 0D 20            LDA  PB_COL
+04FC  47                  MOV  B, A
+04FD  3A 0E 20            LDA  PB_X
+0500  4F                  MOV  C, A
+0501  3E 0F               MVI  A, 0FH
+0503  CD D1 08            CALL PREPBITS
+0506  CD EE 08            CALL CLRBITS
+0509  21 10 20    CS_1:   LXI  H, BOMBS
+050C  22 3D 20            SHLD CPTR
+050F  3E 03               MVI  A, 3
+0511  32 3F 20            STA  CCNT
+0514  2A 3D 20    CS_2:   LHLD CPTR
+0517  7E                  MOV  A, M
+0518  B7                  ORA  A
+0519  C4 31 05            CNZ  KILLBOMB
+051C  2A 3D 20            LHLD CPTR
+051F  23                  INX  H
+0520  23                  INX  H
+0521  23                  INX  H
+0522  23                  INX  H
+0523  22 3D 20            SHLD CPTR
+0526  3A 3F 20            LDA  CCNT
+0529  3D                  DCR  A
+052A  32 3F 20            STA  CCNT
+052D  C2 14 05            JNZ  CS_2
+0530  C9                  RET
+0531  36 00               MVI  M, 0
+0533  23                  INX  H
+0534  46                  MOV  B, M
+0535  23                  INX  H
+0536  4E                  MOV  C, M
+0537  3E 0F               MVI  A, 0FH
+0539  CD D1 08            CALL PREPBITS
+053C  C3 EE 08            JMP  CLRBITS
+053F  3A 1C 20            LDA  BOMBTMR
+0542  3D                  DCR  A
+0543  32 1C 20            STA  BOMBTMR
+0546  C2 5F 05            JNZ  BU_MOVE
+0549  3A 0A 20            LDA  WAVE
+054C  FE 07               CPI  7
+054E  DA 53 05            JC   BU_1
+0551  3E 07               MVI  A, 7
+0553  87          BU_1:   ADD  A
+0554  87                  ADD  A
+0555  47                  MOV  B, A
+0556  3E 28               MVI  A, 40
+0558  90                  SUB  B
+0559  32 1C 20            STA  BOMBTMR
+055C  CD 18 06            CALL SPAWNBOMB
+055F  21 10 20            LXI  H, BOMBS
+0562  22 38 20            SHLD BPTR
+0565  3E 03               MVI  A, 3
+0567  32 3A 20            STA  BCNT
+056A  2A 38 20    BU_L:   LHLD BPTR
+056D  7E                  MOV  A, M
+056E  B7                  ORA  A
+056F  CA AB 05            JZ   BU_NEXT
+0572  23                  INX  H
+0573  46                  MOV  B, M
+0574  23                  INX  H
+0575  4E                  MOV  C, M
+0576  3E 0F               MVI  A, 0FH
+0578  CD D1 08            CALL PREPBITS
+057B  CD EE 08            CALL CLRBITS
+057E  2A 38 20            LHLD BPTR
+0581  23                  INX  H
+0582  23                  INX  H
+0583  7E                  MOV  A, M
+0584  D6 02               SUI  2
+0586  77                  MOV  M, A
+0587  FE 12               CPI  18
+0589  DA A0 05            JC   BU_GONE
+058C  4F                  MOV  C, A
+058D  2B                  DCX  H
+058E  46                  MOV  B, M
+058F  3E 0F               MVI  A, 0FH
+0591  CD D1 08            CALL PREPBITS
+0594  CD DC 08            CALL TESTBITS
+0597  C2 A8 05            JNZ  BU_HIT
+059A  CD E5 08            CALL ORBITS
+059D  C3 AB 05            JMP  BU_NEXT
+05A0  2A 38 20            LHLD BPTR
+05A3  36 00               MVI  M, 0
+05A5  C3 AB 05            JMP  BU_NEXT
+05A8  CD C0 05    BU_HIT: CALL BOMBHIT
+05AB  2A 38 20            LHLD BPTR
+05AE  23                  INX  H
+05AF  23                  INX  H
+05B0  23                  INX  H
+05B1  23                  INX  H
+05B2  22 38 20            SHLD BPTR
+05B5  3A 3A 20            LDA  BCNT
+05B8  3D                  DCR  A
+05B9  32 3A 20            STA  BCNT
+05BC  C2 6A 05            JNZ  BU_L
+05BF  C9                  RET
+05C0  2A 38 20            LHLD BPTR
+05C3  36 00               MVI  M, 0
+05C5  23                  INX  H
+05C6  46                  MOV  B, M
+05C7  23                  INX  H
+05C8  4E                  MOV  C, M
+05C9  79                  MOV  A, C
+05CA  FE 2A               CPI  PLAYER_X+10
+05CC  D2 DC 05            JNC  BH_2
+05CF  3A 0B 20            LDA  PLX
+05D2  57                  MOV  D, A
+05D3  78                  MOV  A, B
+05D4  92                  SUB  D
+05D5  3D                  DCR  A
+05D6  FE 0E               CPI  14
+05D8  D0                  RNC
+05D9  C3 9D 04            JMP  PLAYERDIE
+05DC  3A 0C 20    BH_2:   LDA  PB_ACT
+05DF  B7                  ORA  A
+05E0  CA 09 06            JZ   BH_3
+05E3  3A 0D 20            LDA  PB_COL
+05E6  B8                  CMP  B
+05E7  C2 09 06            JNZ  BH_3
+05EA  3A 0E 20            LDA  PB_X
+05ED  C6 04               ADI  4
+05EF  91                  SUB  C
+05F0  FE 0C               CPI  12
+05F2  D2 09 06            JNC  BH_3
+05F5  AF                  XRA  A
+05F6  32 0C 20            STA  PB_ACT
+05F9  3A 0D 20            LDA  PB_COL
+05FC  47                  MOV  B, A
+05FD  3A 0E 20            LDA  PB_X
+0600  4F                  MOV  C, A
+0601  3E 0F               MVI  A, 0FH
+0603  CD D1 08            CALL PREPBITS
+0606  C3 EE 08            JMP  CLRBITS
+0609  79          BH_3:   MOV  A, C
+060A  FE 2A               CPI  SHIELD_X-6
+060C  D8                  RC
+060D  FE 42               CPI  SHIELD_X+18
+060F  D0                  RNC
+0610  D6 02               SUI  2
+0612  4F                  MOV  C, A
+0613  3E 1F               MVI  A, 1FH
+0615  C3 6F 06            JMP  CHIP
+0618  21 10 20            LXI  H, BOMBS
+061B  06 03               MVI  B, 3
+061D  7E          SB_1:   MOV  A, M
+061E  B7                  ORA  A
+061F  CA 2B 06            JZ   SB_SLOT
+0622  23                  INX  H
+0623  23                  INX  H
+0624  23                  INX  H
+0625  23                  INX  H
+0626  05                  DCR  B
+0627  C2 1D 06            JNZ  SB_1
+062A  C9                  RET
+062B  22 3B 20            SHLD BPTR2
+062E  CD 47 09            CALL RAND
+0631  E6 0F               ANI  0FH
+0633  FE 0B               CPI  11
+0635  DA 3A 06            JC   SB_2
+0638  D6 08               SUI  8
+063A  32 36 20    SB_2:   STA  TMP                ; column index
+063D  06 04               MVI  B, 4               ; start from the bottom row
+063F  78          SB_3:   MOV  A, B
+0640  87                  ADD  A
+0641  87                  ADD  A
+0642  87                  ADD  A
+0643  80                  ADD  B
+0644  80                  ADD  B
+0645  80                  ADD  B                  ; 11 * row
+0646  4F                  MOV  C, A
+0647  3A 36 20            LDA  TMP
+064A  81                  ADD  C
+064B  CD 47 02            CALL ALIENPTR
+064E  7E                  MOV  A, M
+064F  B7                  ORA  A
+0650  C2 58 06            JNZ  SB_FOUND
+0653  05                  DCR  B
+0654  F2 3F 06            JP   SB_3
+0657  C9                  RET
+0658  23                  INX  H
+0659  7E                  MOV  A, M
+065A  C6 07               ADI  7
+065C  57                  MOV  D, A
+065D  23                  INX  H
+065E  7E                  MOV  A, M
+065F  D6 06               SUI  6
+0661  FE 28               CPI  PLAYER_X+8
+0663  D8                  RC
+0664  5F                  MOV  E, A
+0665  2A 3B 20            LHLD BPTR2
+0668  36 01               MVI  M, 1
+066A  23                  INX  H
+066B  72                  MOV  M, D
+066C  23                  INX  H
+066D  73                  MOV  M, E
+066E  C9                  RET
+066F  32 30 20    CHIP:   STA  CHIPPAT
+0672  78                  MOV  A, B
+0673  3D                  DCR  A
+0674  32 31 20            STA  CHIPCOL
+0677  79                  MOV  A, C
+0678  32 32 20            STA  CHIPX
+067B  3E 03               MVI  A, 3
+067D  32 33 20            STA  CHIPN
+0680  3A 31 20    CH_1:   LDA  CHIPCOL
+0683  47                  MOV  B, A
+0684  3A 32 20            LDA  CHIPX
+0687  4F                  MOV  C, A
+0688  3A 30 20            LDA  CHIPPAT
+068B  CD D1 08            CALL PREPBITS
+068E  CD EE 08            CALL CLRBITS
+0691  3A 31 20            LDA  CHIPCOL
+0694  3C                  INR  A
+0695  32 31 20            STA  CHIPCOL
+0698  3A 33 20            LDA  CHIPN
+069B  3D                  DCR  A
+069C  32 33 20            STA  CHIPN
+069F  C2 80 06            JNZ  CH_1
+06A2  C9                  RET
+06A3  3A 2C 20            LDA  UFO_STMR
+06A6  B7                  ORA  A
+06A7  CA BC 06            JZ   UU_1
+06AA  3D                  DCR  A
+06AB  32 2C 20            STA  UFO_STMR
+06AE  C2 BC 06            JNZ  UU_1
+06B1  3A 2D 20            LDA  UFO_SCOL
+06B4  57                  MOV  D, A
+06B5  1E D0               MVI  E, UFO_X
+06B7  06 18               MVI  B, 24
+06B9  CD A9 08            CALL CLRSPR
+06BC  3A 23 20    UU_1:   LDA  UFO_ACT
+06BF  B7                  ORA  A
+06C0  C2 02 07            JNZ  UU_MOVE
+06C3  2A 26 20            LHLD UFO_TMR
+06C6  2B                  DCX  H
+06C7  22 26 20            SHLD UFO_TMR
+06CA  7C                  MOV  A, H
+06CB  B5                  ORA  L
+06CC  C0                  RNZ
+06CD  21 B0 04            LXI  H, 1200
+06D0  22 26 20            SHLD UFO_TMR
+06D3  3A 22 20            LDA  AL_CNT
+06D6  FE 08               CPI  8
+06D8  D8                  RC
+06D9  3A 2C 20            LDA  UFO_STMR
+06DC  B7                  ORA  A
+06DD  C0                  RNZ
+06DE  CD 47 09            CALL RAND
+06E1  E6 01               ANI  1
+06E3  CA F2 06            JZ   UU_LEFT
+06E6  3E 01               MVI  A, 1
+06E8  32 25 20            STA  UFO_DIR
+06EB  AF                  XRA  A
+06EC  32 24 20            STA  UFO_COL
+06EF  C3 FC 06            JMP  UU_GO
+06F2  3E FF               MVI  A, 0FFH
+06F4  32 25 20            STA  UFO_DIR
+06F7  3E CC               MVI  A, 204
+06F9  32 24 20            STA  UFO_COL
+06FC  3E 01       UU_GO:  MVI  A, 1
+06FE  32 23 20            STA  UFO_ACT
+0701  C9                  RET
+0702  3A 25 20            LDA  UFO_DIR
+0705  47                  MOV  B, A
+0706  3A 24 20            LDA  UFO_COL
+0709  80                  ADD  B
+070A  32 24 20            STA  UFO_COL
+070D  FE CD               CPI  205
+070F  D2 1D 07            JNC  UU_END
+0712  57                  MOV  D, A
+0713  1E D0               MVI  E, UFO_X
+0715  21 87 0C            LXI  H, SPR_UFO
+0718  06 14               MVI  B, 20
+071A  C3 94 08            JMP  DRAWSPR
+071D  AF          UU_END: XRA  A
+071E  32 23 20            STA  UFO_ACT
+0721  3A 24 20            LDA  UFO_COL
+0724  90                  SUB  B
+0725  57                  MOV  D, A
+0726  1E D0               MVI  E, UFO_X
+0728  06 14               MVI  B, 20
+072A  C3 A9 08            JMP  CLRSPR
+072D  AF                  XRA  A
+072E  32 23 20            STA  UFO_ACT
+0731  3A 24 20            LDA  UFO_COL
+0734  57                  MOV  D, A
+0735  1E D0               MVI  E, UFO_X
+0737  06 14               MVI  B, 20
+0739  CD A9 08            CALL CLRSPR
+073C  CD 47 09            CALL RAND
+073F  E6 03               ANI  3
+0741  32 36 20            STA  TMP
+0744  87                  ADD  A
+0745  4F                  MOV  C, A
+0746  06 00               MVI  B, 0
+0748  21 6C 09            LXI  H, UFOPTS
+074B  09                  DAD  B
+074C  7E                  MOV  A, M
+074D  23                  INX  H
+074E  46                  MOV  B, M
+074F  C5                  PUSH B
+0750  CD 82 07            CALL ADDSCORE
+0753  C1                  POP  B
+0754  78                  MOV  A, B
+0755  CD 94 07            CALL ADDSCOREHI
+0758  3A 36 20            LDA  TMP
+075B  87                  ADD  A
+075C  4F                  MOV  C, A
+075D  06 00               MVI  B, 0
+075F  21 74 09            LXI  H, UFOSTR
+0762  09                  DAD  B
+0763  7E                  MOV  A, M
+0764  23                  INX  H
+0765  66                  MOV  H, M
+0766  6F                  MOV  L, A
+0767  3A 24 20            LDA  UFO_COL
+076A  C6 02               ADI  2
+076C  FE C5               CPI  197
+076E  DA 73 07            JC   UK_1
+0771  3E C4               MVI  A, 196
+0773  32 2D 20    UK_1:   STA  UFO_SCOL
+0776  57                  MOV  D, A
+0777  1E D0               MVI  E, UFO_X
+0779  CD 57 08            CALL DRAWSTR
+077C  3E 3C               MVI  A, 60
+077E  32 2C 20            STA  UFO_STMR
+0781  C9                  RET
+0782  21 05 20            LXI  H, SCORE
+0785  86                  ADD  M
+0786  27                  DAA
+0787  77                  MOV  M, A
+0788  23                  INX  H
+0789  7E                  MOV  A, M
+078A  CE 00               ACI  0
+078C  27                  DAA
+078D  77                  MOV  M, A
+078E  3E 01               MVI  A, 1
+0790  32 2E 20            STA  SCOREDIRTY
+0793  C9                  RET
+0794  21 06 20            LXI  H, SCORE+1
+0797  86                  ADD  M
+0798  27                  DAA
+0799  77                  MOV  M, A
+079A  3E 01               MVI  A, 1
+079C  32 2E 20            STA  SCOREDIRTY
+079F  C9                  RET
+07A0  3A 2E 20            LDA  SCOREDIRTY
+07A3  B7                  ORA  A
+07A4  C8                  RZ
+07A5  AF                  XRA  A
+07A6  32 2E 20            STA  SCOREDIRTY
+07A9  C3 BE 07            JMP  SCOREVAL
+07AC  21 A2 09            LXI  H, STR_SCORE
+07AF  11 F8 10            LXI  D, 16*256+248
+07B2  CD 57 08            CALL DRAWSTR
+07B5  21 A8 09            LXI  H, STR_HI
+07B8  11 F8 90            LXI  D, 144*256+248
+07BB  CD 57 08            CALL DRAWSTR
+07BE  2A 05 20            LHLD SCORE
+07C1  EB                  XCHG
+07C2  2A 07 20            LHLD HISCORE
+07C5  7D                  MOV  A, L
+07C6  93                  SUB  E
+07C7  7C                  MOV  A, H
+07C8  9A                  SBB  D
+07C9  D2 D0 07            JNC  SV_1
+07CC  EB                  XCHG
+07CD  22 07 20            SHLD HISCORE
+07D0  3A 06 20    SV_1:   LDA  SCORE+1
+07D3  11 E8 10            LXI  D, 16*256+232
+07D6  CD 36 08            CALL DRAWBCD
+07D9  3A 05 20            LDA  SCORE
+07DC  CD 36 08            CALL DRAWBCD
+07DF  3A 08 20            LDA  HISCORE+1
+07E2  11 E8 98            LXI  D, 152*256+232
+07E5  CD 36 08            CALL DRAWBCD
+07E8  3A 07 20            LDA  HISCORE
+07EB  C3 36 08            JMP  DRAWBCD
+07EE  11 00 08            LXI  D, 8*256+0
+07F1  06 80               MVI  B, 128
+07F3  CD A9 08            CALL CLRSPR
+07F6  3A 09 20            LDA  LIVES
+07F9  C6 30               ADI  '0'
+07FB  11 00 08            LXI  D, 8*256+0
+07FE  CD 69 08            CALL DRAWCH
+0801  3A 09 20            LDA  LIVES
+0804  FE 02               CPI  2
+0806  D8                  RC
+0807  3D                  DCR  A
+0808  4F                  MOV  C, A
+0809  16 18               MVI  D, 24
+080B  C5          DL_1:   PUSH B
+080C  D5                  PUSH D
+080D  1E 00               MVI  E, 0
+080F  21 47 0C            LXI  H, SPR_PLAYER
+0812  06 10               MVI  B, 16
+0814  CD 94 08            CALL DRAWSPR
+0817  D1                  POP  D
+0818  C1                  POP  B
+0819  7A                  MOV  A, D
+081A  C6 10               ADI  16
+081C  57                  MOV  D, A
+081D  0D                  DCR  C
+081E  C2 0B 08            JNZ  DL_1
+0821  C9                  RET
+0822  21 01 24            LXI  H, VRAM+1
+0825  06 E0               MVI  B, 224
+0827  36 80       DLN_1:  MVI  M, 80H
+0829  7D                  MOV  A, L
+082A  C6 20               ADI  32
+082C  6F                  MOV  L, A
+082D  D2 31 08            JNC  DLN_2
+0830  24                  INR  H
+0831  05          DLN_2:  DCR  B
+0832  C2 27 08            JNZ  DLN_1
+0835  C9                  RET
+0836  F5                  PUSH PSW
+0837  0F                  RRC
+0838  0F                  RRC
+0839  0F                  RRC
+083A  0F                  RRC
+083B  E6 0F               ANI  0FH
+083D  C6 30               ADI  '0'
+083F  D5                  PUSH D
+0840  CD 69 08            CALL DRAWCH
+0843  D1                  POP  D
+0844  7A                  MOV  A, D
+0845  C6 08               ADI  8
+0847  57                  MOV  D, A
+0848  F1                  POP  PSW
+0849  E6 0F               ANI  0FH
+084B  C6 30               ADI  '0'
+084D  D5                  PUSH D
+084E  CD 69 08            CALL DRAWCH
+0851  D1                  POP  D
+0852  7A                  MOV  A, D
+0853  C6 08               ADI  8
+0855  57                  MOV  D, A
+0856  C9                  RET
+0857  7E                  MOV  A, M
+0858  B7                  ORA  A
+0859  C8                  RZ
+085A  E5                  PUSH H
+085B  D5                  PUSH D
+085C  CD 69 08            CALL DRAWCH
+085F  D1                  POP  D
+0860  E1                  POP  H
+0861  23                  INX  H
+0862  7A                  MOV  A, D
+0863  C6 08               ADI  8
+0865  57                  MOV  D, A
+0866  C3 57 08            JMP  DRAWSTR
+0869  D6 20               SUI  20H
+086B  6F                  MOV  L, A
+086C  26 00               MVI  H, 0
+086E  29                  DAD  H
+086F  29                  DAD  H
+0870  29                  DAD  H
+0871  C5                  PUSH B
+0872  01 E7 09            LXI  B, FONT
+0875  09                  DAD  B
+0876  C1                  POP  B
+0877  06 08               MVI  B, 8
+0879  C3 94 08            JMP  DRAWSPR
+087C  6A                  MOV  L, D
+087D  26 00               MVI  H, 0
+087F  29                  DAD  H
+0880  29                  DAD  H
+0881  29                  DAD  H
+0882  29                  DAD  H
+0883  29                  DAD  H
+0884  7B                  MOV  A, E
+0885  0F                  RRC
+0886  0F                  RRC
+0887  0F                  RRC
+0888  E6 1F               ANI  1FH
+088A  B5                  ORA  L
+088B  6F                  MOV  L, A
+088C  7C                  MOV  A, H
+088D  C6 24               ADI  HIGH(VRAM)
+088F  67                  MOV  H, A
+0890  7B                  MOV  A, E
+0891  E6 07               ANI  7
+0893  C9                  RET
+0894  E5                  PUSH H
+0895  CD 7C 08            CALL CALCADDR
+0898  D1                  POP  D
+0899  1A                  LDAX D
+089A  77                  MOV  M, A
+089B  13                  INX  D
+089C  7D                  MOV  A, L
+089D  C6 20               ADI  32
+089F  6F                  MOV  L, A
+08A0  D2 A4 08            JNC  DC_1
+08A3  24                  INR  H
+08A4  05          DC_1:   DCR  B
+08A5  C2 99 08            JNZ  DRAWCOLS
+08A8  C9                  RET
+08A9  CD 7C 08            CALL CALCADDR
+08AC  36 00       CC_1:   MVI  M, 0
+08AE  7D                  MOV  A, L
+08AF  C6 20               ADI  32
+08B1  6F                  MOV  L, A
+08B2  D2 B6 08            JNC  CC_2
+08B5  24                  INR  H
+08B6  05          CC_2:   DCR  B
+08B7  C2 AC 08            JNZ  CC_1
+08BA  C9                  RET
+08BB  47                  MOV  B, A
+08BC  79                  MOV  A, C
+08BD  D3 02               OUT  2
+08BF  AF                  XRA  A
+08C0  D3 04               OUT  4
+08C2  D3 04               OUT  4
+08C4  78                  MOV  A, B
+08C5  D3 04               OUT  4
+08C7  DB 03               IN   3
+08C9  57                  MOV  D, A
+08CA  AF                  XRA  A
+08CB  D3 04               OUT  4
+08CD  DB 03               IN   3
+08CF  5F                  MOV  E, A
+08D0  C9                  RET
+08D1  F5                  PUSH PSW
+08D2  50                  MOV  D, B
+08D3  59                  MOV  E, C
+08D4  CD 7C 08            CALL CALCADDR
+08D7  4F                  MOV  C, A
+08D8  F1                  POP  PSW
+08D9  C3 BB 08            JMP  SHIFTPAT
+08DC  7E                  MOV  A, M
+08DD  A2                  ANA  D
+08DE  47                  MOV  B, A
+08DF  23                  INX  H
+08E0  7E                  MOV  A, M
+08E1  A3                  ANA  E
+08E2  2B                  DCX  H
+08E3  B0                  ORA  B
+08E4  C9                  RET
+08E5  7E          ORBITS: MOV  A, M
+08E6  B2                  ORA  D
+08E7  77                  MOV  M, A
+08E8  23                  INX  H
+08E9  7E                  MOV  A, M
+08EA  B3                  ORA  E
+08EB  77                  MOV  M, A
+08EC  2B                  DCX  H
+08ED  C9                  RET
+08EE  7A                  MOV  A, D
+08EF  2F                  CMA
+08F0  A6                  ANA  M
+08F1  77                  MOV  M, A
+08F2  23                  INX  H
+08F3  7B                  MOV  A, E
+08F4  2F                  CMA
+08F5  A6                  ANA  M
+08F6  77                  MOV  M, A
+08F7  2B                  DCX  H
+08F8  C9                  RET
+08F9  21 00 24    CLS:    LXI  H, VRAM
+08FC  36 00       CLS_1:  MVI  M, 0
+08FE  23                  INX  H
+08FF  7C                  MOV  A, H
+0900  FE 40               CPI  40H
+0902  C2 FC 08            JNZ  CLS_1
+0905  C9                  RET
+0906  21 00 24            LXI  H, VRAM
+0909  0E E0               MVI  C, 224
+090B  E5          CF_1:   PUSH H
+090C  23                  INX  H
+090D  23                  INX  H
+090E  06 1A               MVI  B, 26
+0910  36 00       CF_2:   MVI  M, 0
+0912  23                  INX  H
+0913  05                  DCR  B
+0914  C2 10 09            JNZ  CF_2
+0917  E1                  POP  H
+0918  11 20 00            LXI  D, 32
+091B  19                  DAD  D
+091C  0D                  DCR  C
+091D  C2 0B 09            JNZ  CF_1
+0920  C9                  RET
+0921  3A 00 20    WAITF:  LDA  FRAMEFLG
+0924  B7                  ORA  A
+0925  CA 21 09            JZ   WAITF
+0928  AF                  XRA  A
+0929  32 00 20            STA  FRAMEFLG
+092C  C9                  RET
+092D  C5          WAITN:  PUSH B
+092E  CD 21 09            CALL WAITF
+0931  C1                  POP  B
+0932  05                  DCR  B
+0933  C2 2D 09            JNZ  WAITN
+0936  C9                  RET
+0937  DB 01       READIN: IN   1
+0939  47                  MOV  B, A
+093A  3A 34 20            LDA  INHELD
+093D  2F                  CMA
+093E  A0                  ANA  B
+093F  32 35 20            STA  INNEW
+0942  78                  MOV  A, B
+0943  32 34 20            STA  INHELD
+0946  C9                  RET
+0947  2A 02 20    RAND:   LHLD RNGL
+094A  7C                  MOV  A, H
+094B  B7                  ORA  A
+094C  1F                  RAR
+094D  67                  MOV  H, A
+094E  7D                  MOV  A, L
+094F  1F                  RAR
+0950  6F                  MOV  L, A
+0951  D2 58 09            JNC  RN_1
+0954  7C                  MOV  A, H
+0955  EE B4               XRI  0B4H
+0957  67                  MOV  H, A
+0958  22 02 20    RN_1:   SHLD RNGL
+095B  3A 01 20            LDA  FRAMECNT
+095E  AD                  XRA  L
+095F  C9                  RET
+0960  E7 0B F7 0B SPRTAB: DW   SPR_A0, SPR_A1, SPR_B0, SPR_B1, SPR_C0, SPR_C1
+096C  50 00 00 01 UFOPTS: DB   50H, 0, 0, 1, 50H, 1, 0, 3
+0974  7C 09 80 09 UFOSTR: DW   STR_U50, STR_U100, STR_U150, STR_U300
+097C  35 30 20 00 STR_U50:  DB '50 ', 0
+0980  31 30 30 00 STR_U100: DB '100', 0
+0984  31 35 30 00 STR_U150: DB '150', 0
+0988  33 30 30 00 STR_U300: DB '300', 0
+098C  41 4C 49 45 STR_TITLE: DB 'ALIEN RAID', 0
+0997  50 55 53 48 STR_PUSH:  DB 'PUSH START', 0
+09A2  53 43 4F 52 STR_SCORE: DB 'SCORE', 0
+09A8  48 49 2D 53 STR_HI:    DB 'HI-SCORE', 0
+09B1  47 41 4D 45 STR_OVER:  DB 'GAME OVER', 0
+09BB  3D 33 30 20 STR_P30:   DB '=30 POINTS', 0
+09C6  3D 32 30 20 STR_P20:   DB '=20 POINTS', 0
+09D1  3D 31 30 20 STR_P10:   DB '=10 POINTS', 0
+09DC  3D 3F 20 4D STR_PMYS:  DB '=? MYSTERY', 0
+09E7  00 00 00 00         DB   000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H, 0FAH, 000H, 000H, 000H, 000H
+09F7  00 00 00 00         DB   000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H
+0A07  00 00 00 00         DB   000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H
+0A17  00 00 00 00         DB   000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H
+0A27  00 00 00 00         DB   000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H
+0A37  00 00 00 00         DB   000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H
+0A47  00 00 00 00         DB   000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H, 010H, 010H, 010H, 010H, 010H, 010H, 000H, 000H
+0A57  00 00 06 06         DB   000H, 000H, 006H, 006H, 000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H
+0A67  38 7C 86 82         DB   038H, 07CH, 086H, 082H, 0C2H, 07CH, 038H, 000H, 002H, 042H, 0FEH, 0FEH, 002H, 002H, 000H, 000H
+0A77  46 CE 9E 9A         DB   046H, 0CEH, 09EH, 09AH, 0BAH, 0F2H, 062H, 000H, 004H, 086H, 092H, 0B2H, 0F2H, 0DEH, 08CH, 000H
+0A87  18 38 68 C8         DB   018H, 038H, 068H, 0C8H, 0FEH, 0FEH, 008H, 000H, 0E4H, 0E6H, 0A2H, 0A2H, 0A2H, 0BEH, 01CH, 000H
+0A97  3C 7E D2 92         DB   03CH, 07EH, 0D2H, 092H, 092H, 09EH, 00CH, 000H, 0C0H, 0C0H, 08EH, 09EH, 0B0H, 0E0H, 0C0H, 000H
+0AA7  6C F2 B2 9A         DB   06CH, 0F2H, 0B2H, 09AH, 09AH, 06EH, 00CH, 000H, 060H, 0F2H, 092H, 092H, 096H, 0FCH, 078H, 000H
+0AB7  00 00 6C 6C         DB   000H, 000H, 06CH, 06CH, 000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H
+0AC7  00 10 28 44         DB   000H, 010H, 028H, 044H, 082H, 000H, 000H, 000H, 028H, 028H, 028H, 028H, 028H, 028H, 000H, 000H
+0AD7  00 00 82 44         DB   000H, 000H, 082H, 044H, 028H, 010H, 000H, 000H, 040H, 0C0H, 08AH, 09AH, 0B0H, 0F0H, 060H, 000H
+0AE7  00 00 00 00         DB   000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H, 03EH, 07EH, 0C8H, 088H, 0C8H, 07EH, 03EH, 000H
+0AF7  FE FE 92 92         DB   0FEH, 0FEH, 092H, 092H, 092H, 0FEH, 06CH, 000H, 038H, 07CH, 0C6H, 082H, 082H, 0C6H, 044H, 000H
+0B07  FE FE 82 82         DB   0FEH, 0FEH, 082H, 082H, 0C6H, 07CH, 038H, 000H, 0FEH, 0FEH, 092H, 092H, 092H, 092H, 082H, 000H
+0B17  FE FE 90 90         DB   0FEH, 0FEH, 090H, 090H, 090H, 090H, 080H, 000H, 038H, 07CH, 0C6H, 082H, 092H, 09EH, 09EH, 000H
+0B27  FE FE 10 10         DB   0FEH, 0FEH, 010H, 010H, 010H, 0FEH, 0FEH, 000H, 082H, 082H, 0FEH, 0FEH, 082H, 082H, 000H, 000H
+0B37  0C 0E 02 02         DB   00CH, 00EH, 002H, 002H, 082H, 0FEH, 0FCH, 000H, 0FEH, 0FEH, 018H, 03CH, 06EH, 0C6H, 082H, 000H
+0B47  FE FE 02 02         DB   0FEH, 0FEH, 002H, 002H, 002H, 002H, 002H, 000H, 0FEH, 0FEH, 070H, 038H, 070H, 0FEH, 0FEH, 000H
+0B57  FE FE 70 38         DB   0FEH, 0FEH, 070H, 038H, 01CH, 0FEH, 0FEH, 000H, 07CH, 0FEH, 082H, 082H, 082H, 0FEH, 07CH, 000H
+0B67  FE FE 88 88         DB   0FEH, 0FEH, 088H, 088H, 088H, 0F8H, 070H, 000H, 07CH, 0FEH, 082H, 08AH, 08EH, 0FCH, 07AH, 000H
+0B77  FE FE 88 8C         DB   0FEH, 0FEH, 088H, 08CH, 09EH, 0F6H, 072H, 000H, 064H, 0F6H, 092H, 092H, 0D2H, 05EH, 00CH, 000H
+0B87  80 80 FE FE         DB   080H, 080H, 0FEH, 0FEH, 080H, 080H, 000H, 000H, 0FCH, 0FEH, 002H, 002H, 002H, 0FEH, 0FCH, 000H
+0B97  F0 F8 1C 0E         DB   0F0H, 0F8H, 01CH, 00EH, 01CH, 0F8H, 0F0H, 000H, 0FEH, 0FEH, 01CH, 038H, 01CH, 0FEH, 0FEH, 000H
+0BA7  C6 EE 7C 38         DB   0C6H, 0EEH, 07CH, 038H, 07CH, 0EEH, 0C6H, 000H, 0E0H, 0F0H, 01EH, 01EH, 0F0H, 0E0H, 000H, 000H
+0BB7  86 8E 9E BA         DB   086H, 08EH, 09EH, 0BAH, 0F2H, 0E2H, 0C2H, 000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H
+0BC7  00 00 00 00         DB   000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H
+0BD7  00 00 00 00         DB   000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H, 000H
+0BE7  00 00 12 34         DB   000H, 000H, 012H, 034H, 078H, 054H, 0D8H, 0F8H, 0F8H, 0D8H, 054H, 078H, 034H, 012H, 000H, 000H
+0BF7  00 00 10 30         DB   000H, 000H, 010H, 030H, 07CH, 052H, 0DAH, 0F8H, 0F8H, 0DAH, 052H, 07CH, 030H, 010H, 000H, 000H
+0C07  00 00 70 1A         DB   000H, 000H, 070H, 01AH, 03EH, 0ACH, 078H, 078H, 078H, 078H, 0ACH, 03EH, 01AH, 070H, 000H, 000H
+0C17  00 00 0C 18         DB   000H, 000H, 00CH, 018H, 03CH, 0AEH, 07AH, 078H, 078H, 07AH, 0AEH, 03CH, 018H, 00CH, 000H, 000H
+0C27  00 00 30 5A         DB   000H, 000H, 030H, 05AH, 07CH, 078H, 0D8H, 0F4H, 0F4H, 0D8H, 078H, 07CH, 05AH, 030H, 000H, 000H
+0C37  00 00 30 78         DB   000H, 000H, 030H, 078H, 05AH, 07CH, 0F8H, 0D4H, 0F4H, 0F8H, 05CH, 07AH, 078H, 010H, 000H, 000H
+0C47  00 06 0E 1C         DB   000H, 006H, 00EH, 01CH, 00CH, 03EH, 07EH, 0FEH, 07EH, 03EH, 00CH, 01CH, 00EH, 006H, 000H, 000H
+0C57  00 26 8A 5C         DB   000H, 026H, 08AH, 05CH, 00CH, 03EH, 03EH, 094H, 038H, 01EH, 00CH, 0DEH, 006H, 040H, 000H, 000H
+0C67  00 42 14 2C         DB   000H, 042H, 014H, 02CH, 08EH, 02EH, 018H, 05EH, 01EH, 04AH, 024H, 08CH, 01EH, 042H, 000H, 000H
+0C77  00 00 92 54         DB   000H, 000H, 092H, 054H, 028H, 000H, 0C6H, 010H, 010H, 0C6H, 000H, 028H, 054H, 092H, 000H, 000H
+0C87  00 00 08 18         DB   000H, 000H, 008H, 018H, 03CH, 06EH, 07CH, 0F8H, 0E8H, 0FCH, 0FCH, 0E8H, 0F8H, 07CH, 06EH, 03CH
+0C97  18 08 00 00         DB   018H, 008H, 000H, 000H
+0C9B  FF 07 FF 0F         DB   0FFH, 007H, 0FFH, 00FH, 0FFH, 01FH, 0FFH, 03FH, 0FFH, 07FH, 0FCH, 0FFH, 0F8H, 0FFH, 0F0H, 0FFH
+0CAB  F0 FF F0 FF         DB   0F0H, 0FFH, 0F0H, 0FFH, 0F0H, 0FFH, 0F0H, 0FFH, 0F0H, 0FFH, 0F0H, 0FFH, 0F0H, 0FFH, 0F8H, 0FFH
+0CBB  FC FF FF 7F         DB   0FCH, 0FFH, 0FFH, 07FH, 0FFH, 03FH, 0FFH, 01FH, 0FFH, 00FH, 0FFH, 007H
