@@ -43,17 +43,36 @@ def sha256(data):
     return hashlib.sha256(data).hexdigest()
 
 
-def dump(o, addr, length):
+CHUNK, RETRIES = 4096, 5
+
+
+def dump_once(o, addr, length):
     with tempfile.NamedTemporaryFile(delete=False) as f:
         path = f.name
     try:
         o.cmd(f'dump_image {path} {addr:#x} {length}')
-        data = open(path, 'rb').read()
+        return open(path, 'rb').read()
     finally:
         os.unlink(path)
-    if len(data) != length:
-        raise SystemExit(f'read {len(data)} of {length} bytes at {addr:#x}')
-    return data
+
+
+def dump(o, addr, length):
+    """Read in CHUNK pieces, retrying each one; SWD reads fail now and then."""
+    out = bytearray()
+    while len(out) < length:
+        a, n = addr + len(out), min(CHUNK, length - len(out))
+        for _ in range(RETRIES):
+            data = dump_once(o, a, n)
+            if len(data) == n:
+                break
+        else:
+            raise SystemExit(f'cannot read {n} bytes at {a:#x}; check the SWD wiring')
+        out += data
+        if length > CHUNK:
+            sys.stderr.write(f'\r{addr:#x}: {len(out) // 1024}/{length // 1024} KB ')
+    if length > CHUNK:
+        sys.stderr.write('\n')
+    return bytes(out)
 
 
 def save(outdir, name, data):
@@ -68,7 +87,7 @@ def save(outdir, name, data):
 
 
 def backup_mcu(outdir):
-    o = sflash.OpenOCD()
+    o = sflash.OpenOCD(speed=1000)
     try:
         o.cmd(HALT)
         reads = [dump(o, MCU_FLASH, MCU_FLASH_SIZE) for _ in range(2)]

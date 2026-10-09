@@ -47,10 +47,10 @@ def mbox_addr():
 
 
 class OpenOCD:
-    def __init__(self):
+    def __init__(self, speed=4000):
         self.proc = subprocess.Popen(
             [openocd_bin(), '-s', OCD + '/scripts', '-f', 'interface/cmsis-dap.cfg',
-             '-f', 'target/at32f415xx.cfg', '-c', 'adapter speed 4000', '-c', 'tcl_port 6666',
+             '-f', 'target/at32f415xx.cfg', '-c', f'adapter speed {speed}', '-c', 'tcl_port 6666',
              '-c', 'gdb_port disabled', '-c', 'telnet_port disabled', '-c', 'init'],
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         for _ in range(50):
