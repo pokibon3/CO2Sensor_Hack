@@ -70,11 +70,10 @@ Back up the factory contents with `../../tools/backup_flash.py` first. The dump 
 
 ## Flashing
 
-Flash while halted (an MCU reset drops the power latch). See `../colorbar_sample/README.md` for wiring. Flash this project's ELF with:
+Flash while halted (an MCU reset drops the power latch). See `../colorbar_sample/README.md` for wiring. Flash this project's ELF with the OpenOCD wrapper `../../tools/openocd.py` (see `../../tools/openocd_setup.md`):
 
 ```sh
-OCD=~/.platformio/packages/tool-openocd-at32
-$OCD/bin-darwin_arm64/openocd -s $OCD/scripts \
+python3 ../../tools/openocd.py \
   -f interface/cmsis-dap.cfg -f target/at32f415xx.cfg -c "adapter speed 1000" \
   -c "init; halt; cortex_m maskisr on; mww 0xE0042004 0x300; mww 0xE000E010 0; mww 0xE000E180 0xFFFFFFFF; mww 0xE000E280 0xFFFFFFFF; flash write_image erase .pio/build/at32f415cbt7/firmware.elf; verify_image .pio/build/at32f415cbt7/firmware.elf; cortex_m maskisr auto; reset run; exit"
 ```

@@ -51,11 +51,10 @@ J1 wiring:
 
 Power the board with S2. Do not power the board from the probe.
 
-Do not use `pio run -t upload`: OpenOCD's `program` resets the target first, and the reset drops board power. Flash while halted instead, then reset:
+Do not use `pio run -t upload`: OpenOCD's `program` resets the target first, and the reset drops board power. Flash while halted instead, then reset. `../../tools/openocd.py` runs the ArteryTek OpenOCD for your OS (see `../../tools/openocd_setup.md`):
 
 ```sh
-OCD=~/.platformio/packages/tool-openocd-at32
-$OCD/bin-darwin_arm64/openocd -s $OCD/scripts \
+python3 ../../tools/openocd.py \
   -f interface/cmsis-dap.cfg -f target/at32f415xx.cfg \
   -c "adapter speed 1000" \
   -c "init; halt; mww 0xE0042004 0x300; flash write_image erase .pio/build/at32f415cbt7/firmware.elf; verify_image .pio/build/at32f415cbt7/firmware.elf; reset run; exit"

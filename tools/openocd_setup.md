@@ -30,13 +30,14 @@ pio pkg install -g -t https://github.com/amoxu/tool-openocd-at32.git
 
 ## 3. インストールを確認する
 
+リポジトリのルートで実行する。
+
 ```sh
-OCD=~/.platformio/packages/tool-openocd-at32
-$OCD/bin-darwin_arm64/openocd --version
-ls $OCD/scripts/target/at32f415xx.cfg
+python3 tools/openocd.py --version
+ls ~/.platformio/packages/tool-openocd-at32/scripts/target/at32f415xx.cfg
 ```
 
-Intel Macでは `bin-darwin_x86_64`、Linuxでは `bin-linux_x86_64` などを使う。`backup_flash.py` と `sflash.py` は、実行中のOSとCPUから `bin-<OS>_<CPU>` を自動で選ぶ（macOS、Linux（x86_64、aarch64、armv7l）、Windows）。
+OpenOCDの実行ファイルは `tool-openocd-at32/bin-<OS>_<CPU>/` にある。`tools/openocd.py` は実行中のOSとCPUに合うものを選び、`-s <scripts>` を付けて起動するラッパー。対応するのはmacOS、Linux（x86_64、aarch64、armv7l）、Windows。各READMEのコマンド、`backup_flash.py`、`sflash.py` も同じ判定を使う。
 
 ## 4. Debug Probeを確認する
 
@@ -50,11 +51,10 @@ Vendor ID `0x2e8a`、Product ID `0x000c` が見えればよい。J1との配線�
 
 ## 5. 基板との接続を試す
 
-S2で基板の電源を入れてから実行する。Probeからは給電しない。
+S2で基板の電源を入れてから、リポジトリのルートで実行する。Probeからは給電しない。
 
 ```sh
-OCD=~/.platformio/packages/tool-openocd-at32
-$OCD/bin-darwin_arm64/openocd -s $OCD/scripts \
+python3 tools/openocd.py \
   -f interface/cmsis-dap.cfg -f target/at32f415xx.cfg -c "adapter speed 1000" \
   -c "init; targets; exit"
 ```
