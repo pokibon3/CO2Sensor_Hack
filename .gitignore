@@ -14,3 +14,6 @@ __pycache__/
 
 # Claude Code local state
 .claude/
+
+# Factory dumps (vendor copyright, kept local only)
+analysis/factory_dump/
