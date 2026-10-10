@@ -10,7 +10,7 @@ typedef struct
 {
   bool left;      /* PB7 */
   bool right;     /* PB6 */
-  bool fire;      /* S2 (PWR) */
+  bool fire;      /* PWR */
 } input_t;
 
 void game_init(uint32_t seed);

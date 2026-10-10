@@ -6,8 +6,8 @@
 #include "video.h"
 
 /* ALIEN RAID (invaders9k/sw/game.bin) running on an 8080 emulator.
- * Controls: left = PB7, right = S2 (PB2), fire/start = PB6.
- * S2 long press = power on (1 s) / off (5 s).
+ * Controls: left = PB7, right = PWR (PB2), fire/start = PB6.
+ * PWR long press = power on (1 s) / off (5 s).
  */
 
 #define FRAME_HZ          60u
@@ -39,9 +39,9 @@ static uint32_t cycles_to_us(uint32_t cycles)
   return cycles / (system_core_clock / 1000000u);
 }
 
-/* Release the power latch. While S2 is held the button itself keeps the
+/* Release the power latch. While PWR is held the button itself keeps the
  * supply up, so blank the display and silence the buzzer at once; the board
- * loses power when S2 is released. If it stays powered (external supply),
+ * loses power when PWR is released. If it stays powered (external supply),
  * wait for another long press and restart.
  */
 static void power_off(bool display_ready)
@@ -54,14 +54,14 @@ static void power_off(bool display_ready)
     lt_display_on(false);
   }
   board_power_hold(false);
-  while(board_s2_pressed())
+  while(board_pwr_pressed())
   {
   }
   board_delay_ms(500u);
 
   for(;;)
   {
-    held = board_s2_pressed() ? held + 10u : 0u;
+    held = board_pwr_pressed() ? held + 10u : 0u;
     if(held >= POWER_ON_HOLD_MS)
     {
       NVIC_SystemReset();
@@ -75,7 +75,7 @@ static void power_on(void)
   uint32_t held = 0u;
 
   board_gpio_init();
-  if(!board_s2_pressed())
+  if(!board_pwr_pressed())
   {
     /* Not started by the button (debugger reset, external supply). */
     board_power_hold(true);
@@ -84,7 +84,7 @@ static void power_on(void)
   }
 
   board_clock_init();
-  while(board_s2_pressed() && held < POWER_ON_HOLD_MS)
+  while(board_pwr_pressed() && held < POWER_ON_HOLD_MS)
   {
     board_delay_ms(10u);
     held += 10u;
@@ -99,8 +99,8 @@ static void power_on(void)
 int main(void)
 {
   uint32_t last_tick;
-  uint32_t s2_frames = 0u;
-  bool s2_locked;
+  uint32_t pwr_frames = 0u;
+  bool pwr_locked;
 
   power_on();
   g_diag.stage = 1u;
@@ -110,7 +110,7 @@ int main(void)
     g_diag.stage = 0xE1u;
     for(;;)
     {
-      if(board_s2_pressed())
+      if(board_pwr_pressed())
       {
         power_off(false);
       }
@@ -126,8 +126,8 @@ int main(void)
   sound_init();
   sound_enable(true);
 
-  /* Ignore the power-on press until S2 is released. */
-  s2_locked = board_s2_pressed();
+  /* Ignore the power-on press until PWR is released. */
+  pwr_locked = board_pwr_pressed();
 
   SysTick_Config(system_core_clock / FRAME_HZ);
   last_tick = frame_tick;
@@ -137,7 +137,7 @@ int main(void)
   {
     uint32_t t0, t1, t2, px;
     uint8_t in1 = IN1_ALWAYS;
-    bool s2;
+    bool pwr;
 
     while(frame_tick == last_tick)
     {
@@ -149,18 +149,18 @@ int main(void)
     }
     last_tick = frame_tick;
 
-    s2 = board_s2_pressed();
-    if(!s2)
+    pwr = board_pwr_pressed();
+    if(!pwr)
     {
-      s2_locked = false;
+      pwr_locked = false;
     }
-    s2_frames = s2 ? s2_frames + 1u : 0u;
-    if(s2_frames >= POWER_OFF_FRAMES && !s2_locked)
+    pwr_frames = pwr ? pwr_frames + 1u : 0u;
+    if(pwr_frames >= POWER_OFF_FRAMES && !pwr_locked)
     {
       power_off(true);
     }
 
-    if(s2 && !s2_locked)
+    if(pwr && !pwr_locked)
     {
       in1 |= IN1_RIGHT;
     }

@@ -4,7 +4,7 @@
   openocd.py [OPENOCD ARGS...]
 
 Same as `openocd -s <scripts> ARGS...`. The binary is chosen by
-sflash.openocd_bin(); see tools/openocd_setup.md.
+sflash.openocd_bin(); see doc/openocd_setup.md.
 """
 import os, subprocess, sys
 

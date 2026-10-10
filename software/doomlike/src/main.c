@@ -9,9 +9,9 @@
 #include "sht3x.h"
 #include "sound.h"
 
-/* DEMON GATE: a DOOM-style raycaster drawn with LT7680B rectangle fills.
+/* DOOM: a DOOM-style raycaster drawn with LT7680B rectangle fills.
  * Controls: PB7 = turn left, PB6 = turn right, both = forward,
- * S2 (PB2, PWR) = fire. S2 long press = power on (1 s) / off (5 s, alone,
+ * PWR (PB2) = fire. PWR long press = power on (1 s) / off (5 s, alone,
  * not while playing, where fire is held).
  */
 
@@ -118,14 +118,14 @@ static void power_off(bool display_ready)
     lt_display_on(false);
   }
   board_power_hold(false);
-  while(board_s2_pressed())
+  while(board_pwr_pressed())
   {
   }
   board_delay_ms(500u);
 
   for(;;)
   {
-    held = board_s2_pressed() ? held + 10u : 0u;
+    held = board_pwr_pressed() ? held + 10u : 0u;
     if(held >= POWER_ON_HOLD_MS)
     {
       NVIC_SystemReset();
@@ -139,7 +139,7 @@ static void power_on(void)
   uint32_t held = 0u;
 
   board_gpio_init();
-  if(!board_s2_pressed())
+  if(!board_pwr_pressed())
   {
     /* Not started by the button (debugger reset, external supply). */
     board_power_hold(true);
@@ -148,7 +148,7 @@ static void power_on(void)
   }
 
   board_clock_init();
-  while(board_s2_pressed() && held < POWER_ON_HOLD_MS)
+  while(board_pwr_pressed() && held < POWER_ON_HOLD_MS)
   {
     board_delay_ms(10u);
     held += 10u;
@@ -163,10 +163,10 @@ static void power_on(void)
 int main(void)
 {
   uint32_t done = 0u;
-  uint32_t s2_alone = 0u;
+  uint32_t pwr_alone = 0u;
   uint32_t sec_ticks = 0u, sec_frames = 0u, sec_ms = 0u;
   uint32_t clock_ticks = 0u;
-  bool s2_locked;
+  bool pwr_locked;
 
   power_on();
   g_diag.stage = 1u;
@@ -176,7 +176,7 @@ int main(void)
     g_diag.stage = 0xE1u;
     for(;;)
     {
-      if(board_s2_pressed())
+      if(board_pwr_pressed())
       {
         power_off(false);
       }
@@ -197,8 +197,8 @@ int main(void)
   sound_init();
   sound_enable(true);
 
-  /* Ignore the power-on press until S2 is released. */
-  s2_locked = board_s2_pressed();
+  /* Ignore the power-on press until PWR is released. */
+  pwr_locked = board_pwr_pressed();
 
   SysTick_Config(system_core_clock / GAME_HZ);
   done = tick_count;
@@ -224,15 +224,15 @@ int main(void)
 
     in.left = board_left_pressed();
     in.right = board_right_pressed();
-    in.fire = board_s2_pressed();
-    if(s2_locked)
+    in.fire = board_pwr_pressed();
+    if(pwr_locked)
     {
-      s2_locked = in.fire;
+      pwr_locked = in.fire;
       in.fire = false;
     }
 
-    s2_alone = (in.fire && !in.left && !in.right && !game_playing()) ? s2_alone + pending : 0u;
-    if(s2_alone >= POWER_OFF_TICKS)
+    pwr_alone = (in.fire && !in.left && !in.right && !game_playing()) ? pwr_alone + pending : 0u;
+    if(pwr_alone >= POWER_OFF_TICKS)
     {
       power_off(true);
     }

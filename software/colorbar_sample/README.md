@@ -1,6 +1,6 @@
 # AT32F415 + LT7680B LCD color-bar sample
 
-Hardware bring-up program for the DM72D board. It configures the LT7680B and enables its built-in color-bar generator, so it does not depend on the W25Q32JV image contents. **Confirmed working on hardware: color bars are displayed.**
+Hardware bring-up program for the DM72C board. It configures the LT7680B and enables its built-in color-bar generator, so it does not depend on the W25Q32JV image contents. **Confirmed working on hardware: color bars are displayed.**
 
 ## MCU-to-LT7680B wiring (confirmed)
 
@@ -20,7 +20,7 @@ SPI mode 0 reads back correctly at 500 kHz. The factory firmware uses mode 3 at 
 
 ## Board quirks
 
-- **Power-hold latch.** S2 is the power button. The MCU must keep its outputs driven to keep the board powered. Any MCU reset turns the board off. `board_power_hold_init()` reproduces the factory firmware's output state (PA0/PA7/PA11/PA15/PB0/PB1/PB3/PB4 high, PA4/PC15 low) as the first action in `main()`. The exact hold pin has not been isolated.
+- **Power-hold latch.** PWR is the power button. The MCU must keep its outputs driven to keep the board powered. Any MCU reset turns the board off. `board_power_hold_init()` reproduces the factory firmware's output state (PA0/PA7/PA11/PA15/PB0/PB1/PB3/PB4 high, PA4/PC15 low) as the first action in `main()`. The exact hold pin has not been isolated.
 - **Watchdog in factory firmware.** The factory firmware starts the WDT. A halted CPU therefore resets after a short time, which drops power and makes SWD disappear. Set `DEBUG_CTRL.WDT_PAUSE` (`mww 0xE0042004 0x300`) right after halting. This sample does not use the WDT.
 
 ## LCD / LT7680B settings (from factory firmware)
@@ -38,29 +38,9 @@ SPI mode 0 reads back correctly at 500 kHz. The factory firmware uses mode 3 at 
 pio run
 ```
 
-## Upload with Raspberry Pi Debug Probe
+## Upload
 
-J1 wiring:
-
-| J1 | Signal | Debug Probe |
-|---:|---|---|
-| 1 | 3.3 V | leave open |
-| 2 | SWCLK | SC |
-| 3 | SWDIO | SD |
-| 4 | GND | GND |
-
-Power the board with S2. Do not power the board from the probe.
-
-Do not use `pio run -t upload`: OpenOCD's `program` resets the target first, and the reset drops board power. Flash while halted instead, then reset. `../../tools/openocd.py` runs the ArteryTek OpenOCD for your OS (see `../../tools/openocd_setup.md`):
-
-```sh
-python3 ../../tools/openocd.py \
-  -f interface/cmsis-dap.cfg -f target/at32f415xx.cfg \
-  -c "adapter speed 1000" \
-  -c "init; halt; mww 0xE0042004 0x300; flash write_image erase .pio/build/at32f415cbt7/firmware.elf; verify_image .pio/build/at32f415cbt7/firmware.elf; reset run; exit"
-```
-
-If the flash is blank or broken (nothing holds power), keep S2 pressed during the whole upload.
+Flash `.pio/build/at32f415cbt7/firmware.elf` while halted, as in [`../../doc/flashing.md`](../../doc/flashing.md) (power, OpenOCD command; J1 wiring in [`../../doc/debugger_connection.md`](../../doc/debugger_connection.md)). Do not use `pio run -t upload`: the reset drops board power.
 
 ## Diagnostics
 
@@ -78,7 +58,7 @@ Known-good capture: `00000003 e0908054`, i.e. status 0x54, REG00 0x80, REG01 0x9
 
 ## Factory firmware
 
-Back up the factory firmware with `../../tools/backup_flash.py mcu` before flashing (128 KB; FAP was disabled on the author's unit). The dump is not included in the repository. To restore it, write `factory_firmware.bin` at 0x08000000 using the same halted-flash procedure.
+Back up the factory firmware with `../../tools/backup_flash.py mcu` before flashing (128 KB; FAP was disabled on the author's unit). The dump is not included in the repository. To restore it, write `factory_firmware.bin` at 0x08000000 using the same halted-flash procedure ([`../../doc/flash_backup.md`](../../doc/flash_backup.md) restores it automatically with `all`).
 
 ## Sources
 

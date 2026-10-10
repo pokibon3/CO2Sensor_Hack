@@ -1,19 +1,33 @@
-# LT7680B搭載基板 写真解析
+# DM72C 基板解析
+
+CO2モニターDM72Cの基板（シルク`DM72D_M_RC`）の解析結果。
 
 ## 収録写真
 
-- `photos/board_overview.jpeg` — 基板全体
-- `photos/main_components_closeup.jpeg` — MCU、表示コントローラ、Flash周辺の接写
-- `photos/board_reverse.jpeg` — 反対面（操作部、ブザー、電源、未実装モジュール領域）
+写真はリポジトリ直下の `img/` にある。
+
+- `../img/board_overview.jpeg` — 基板全体
+- `../img/main_components_closeup.jpeg` — MCU、表示コントローラ、Flash周辺の接写
+- `../img/board_reverse.jpeg` — 反対面（操作部、ブザー、電源、未実装モジュール領域）
+- `../img/OMOTE.jpeg` — ボタン・ブザー・J1側の面（このレポートの「反対面」）
+- `../img/URA.jpeg` — MCU・LT7680B・W25Q32側の面
+- `../img/CPU_LCD-CONTROLLER.jpeg` — U4（AT32F415CBT7）とU20（LT7680B）の接写
+- `../img/J1.jpeg` — J1の接写（`OMOTE.jpeg` から切り出し、ピン名入り）
+- `../img/DEBUG_PROBE.JPG`、`../img/DEBUG_PROBE_pins.jpeg` — 使用しているデバッガ（RP2040-Zero＋debugprobeファーム。`_pins` はピン名入り）
+- `../img/ORIGINAL.jpeg` — 工場ファームの表示
+- `../img/DOOM_TITLE.jpeg`、`../img/DOOM.jpeg`、`../img/INVADER.jpeg` — 自作ソフトウェアの表示
+
+![ボタン・J1側](../img/OMOTE.jpeg) ![MCU・LT7680B側](../img/URA.jpeg)
 
 ## 成果物（`../software/`）
 
 - `../software/colorbar_sample/` — LT7680B内蔵カラーバーを表示する最小試験。実機で表示を確認済み
 - `../software/invaders/` — 8080エミュレータでALIEN RAIDを動かすゲームと、W25Q32読み書きツール
+- `../software/doomlike/` — DOOM（LT7680Bの長方形塗りつぶしで描くレイキャスター）。時計、電池、CO2・温湿度の表示つき
 
-## 工場ファームとFlashのバックアップ（`factory_dump/`）
+## 工場ファームとFlashのバックアップ（`analysis/factory_dump/`）
 
-ダンプと取り出した画像はメーカーの著作物のため、リポジトリには含めない（`.gitignore`で除外）。公開するのは取得ツールと使い方だけで、ダンプは `../tools/backup_flash.py` で各自取得する（`../tools/README.md`）。以下は作者の手元にあるファイルの説明。
+ダンプと取り出した画像はメーカーの著作物のため、リポジトリには含めない（`.gitignore`で除外）。公開するのは取得ツールと使い方だけで、ダンプは `../tools/backup_flash.py` で各自取得する（[flash_backup.md](flash_backup.md)）。以下は作者の手元にあるファイルの説明。
 
 - `factory_firmware.bin` — AT32F415の出荷時Flash全体（128 KB、SHA256 `0ffef943…e230`）。読み出し時点でFAPは無効
 - `user_system_data.bin` — ユーザーシステムデータ
@@ -27,8 +41,8 @@
 
 | 項目 | 内容 | 確認方法 |
 |---|---|---|
-| 電源保持 | PA7をHighにすると電源を保持する。Lowにすると電源が切れる（S2を押している間はS2が給電する） | SWDでPA7をLowにして確認 |
-| S2（電源ボタン） | PB2、押すとLow | 押下中のサンプリング |
+| 電源保持 | PA7をHighにすると電源を保持する。Lowにすると電源が切れる（PWRを押している間はPWRが給電する） | SWDでPA7をLowにして確認 |
+| PWR（電源ボタン） | PB2、押すとLow | 押下中のサンプリング |
 | その他のボタン | PB6、PB7、押すとLow | 工場ファームの解析と実機の操作 |
 | ブザー | PA4。パッシブ型（他励式）トランスデューサで、High固定ではクリック音のみ | SWDで駆動して確認 |
 | W25Q32 | LT7680BのSPIマスター、nSS1。JEDEC ID EF4016。書込み保護なし（SR1=00、SR2=02） | 読出し・消去・書込みで確認 |
@@ -68,6 +82,8 @@
 ## 各ブロックの解析
 
 ### U4：AT32F415CBT7
+
+![U4とU20](../img/CPU_LCD-CONTROLLER.jpeg)
 
 - Arm Cortex-M4、最大150 MHz
 - 内蔵Flash 128 KB
@@ -120,56 +136,7 @@ AT32F415のフルJTAGに必要な8信号候補：
 | VREF | 3.3 V |
 | GND | VSS |
 
-ユーザー確認により、反対面下端のJ1が4ピンSWDデバッグ端子、FL1は別用途。U7下の8ピン列もJTAG/SWD端子ではない。
-
-J1の確定ピン配列：
-
-| J1 Pin | 信号 | MCU側 |
-|---:|---|---|
-| 1 | 3.3 V / VREF | VDD系 |
-| 2 | SWCLK | PA14、MCU Pin 37 |
-| 3 | SWDIO | PA13、MCU Pin 34 |
-| 4 | GND | VSS系 |
-
-J1にはNRSTがない。このためデバッガ接続時は通常のSWD接続またはhot-plugを使用し、接続できない場合は基板の電源再投入と同時に接続する必要がある。フルJTAG用のPA15/JTDI、PB3/JTDO-SWO、PB4/NJTRSTも出ていないため、電気的にはJTAGではなく4線SWD端子である。AT32F415ではSWDIO/SWCLKをPB10/PB11へリマップできない。
-
-Raspberry Pi Picoに公式debugprobeファームウェアを入れて使用する場合の接続：
-
-| ターゲットJ1 | Raspberry Pi Pico | 備考 |
-|---|---|---|
-| 1：3.3 V/VREF | 接続しない | Pico版debugprobeはVREF検出を使用しない。ターゲットは別電源で動作させる |
-| 2：SWCLK | GP2、物理Pin 4 | クロック |
-| 3：SWDIO | GP3、物理Pin 5 | 双方向データ |
-| 4：GND | GND、例：物理Pin 3 | 必ず共通GNDにする |
-
-PicoはPCのUSBから給電し、ターゲット基板は本来の電源から給電する。J1-1とPicoの3V3 OUTをつないで基板全体へ給電しない。配線は短くし、必要ならSWCLK/SWDIOへ直列100 Ω程度を追加する。
-
-Raspberry Pi Debug Probe製品版の3ピン`D`端子を使用する場合：
-
-| ケーブル色・表示 | 信号 | 接続先 |
-|---|---|---|
-| 橙・SC | SWCLK | J1 Pin 2 |
-| 黄・SD | SWDIO | J1 Pin 3 |
-| 黒・GND | GND | J1 Pin 4 |
-
-同形状の`U`端子はUART用なので使用しない。Debug Probeの標準3ピン`D`端子にはNRSTがないため、Probeからターゲットをリセットした状態で接続する「connect under reset」はできない。
-
-#### SWD接続の実測結果（2026-10-09）
-
-- macOSからRaspberry Pi Debug ProbeをCMSIS-DAPv2として認識
-- USB VID:PID：`2E8A:000C`
-- OpenOCD 0.12.0、SWDクロック10 kHzおよび100 kHzで試験
-- 多くの試行では`Error connecting DP: cannot read IDR`となり、接続は不安定
-- 一部の試行では`SWD DPIDR 0x2ba01477`を正常取得
-- Cortex-M4 r0p1、ハードウェアブレークポイント6個、ウォッチポイント4個を検出
-- 一度だけCPU停止に成功し、`PC = 0x080023b6`、`MSP = 0x20001a78`、`xPSR = 0x21000000`を取得
-- この結果から、Debug Probe本体とJ1のSWCLK/SWDIO配線は基本的に正しいと判断できる
-- 接続成功後もメモリアクセス開始時に通信が切れるため、接触不良、配線品質、電源変動、または既存ファームによる低消費電力移行の影響が疑われる
-- 内蔵Flash 128 KiB（`0x08000000`～`0x0801FFFF`）のバックアップを試みたが未取得
-- 読出し失敗時に生成された0バイトのファイルは`at32f415_flash_backup.invalid-0bytes.bin`として区別して保存
-- Flashへの書込み、消去、保護解除は一切実施していない
-
-安定したFlash読出しには、短い固定配線と確実なGNDが必要。既存ファームが起動直後にSWD端子の設定変更または低消費電力状態への移行を行う場合、MCU Pin 7のNRSTを手動操作して接続タイミングを合わせるか、NRST出力を備えたデバッガを使用する。読出し保護の解除は全消去を伴う可能性があるため、既存ファームを保存するまでは実行しない。
+ユーザー確認により、反対面下端のJ1が4ピンSWDデバッグ端子（右からGND、SWDIO、SWCLK、3.3 V。NRSTなし）、FL1は別用途。U7下の8ピン列もJTAG/SWD端子ではない。J1の位置、配線、接続の記録は [debugger_connection.md](debugger_connection.md)、書き込み手順は [flashing.md](flashing.md) にまとめた。
 
 ### U20：LT7680B
 
@@ -234,6 +201,8 @@ U7はAMS1117-3.3で、入力電源から3.3 Vロジック電源を生成する�
 
 ## 反対面の解析
 
+写真：`../img/OMOTE.jpeg`
+
 ### 基板識別
 
 - シルク印刷：`DM72D_M_RC-2020/11/12`
@@ -242,7 +211,7 @@ U7はAMS1117-3.3で、入力電源から3.3 Vロジック電源を生成する�
 ### 操作部
 
 - 上端にタクトスイッチ3個を実装
-- シルク上では少なくともS1、S6を確認できる
+- シルクは左からS6、S2（PWRボタン）、S1（`../img/OMOTE.jpeg`）
 - 各スイッチからMCU方向へ独立配線が伸びており、GPIO入力と考えられる
 - L2は表示灯または照明部品の可能性があるが、型番は未確認
 
@@ -278,7 +247,7 @@ U7はAMS1117-3.3で、入力電源から3.3 Vロジック電源を生成する�
 ### コネクタ・テスト端子
 
 - J6は5ピンコネクタで、外部センサまたはサブ基板接続の可能性がある
-- 下端のJ1は4ピンSWD端子（3.3 V、SWCLK、SWDIO、GND）
+- 下端のJ1は4ピンSWD端子。写真右からGND、SWDIO、SWCLK、3.3 V（[debugger_connection.md](debugger_connection.md)）
 - FL1はJ1とは別用途の多ピン未実装端子で、製造検査または製品バリエーション用接続の候補
 - U11/U12周辺にも未実装のピン列があり、モジュール接続または評価用と考えられる
 
@@ -291,7 +260,7 @@ U18、LED1、複数の抵抗・コンデンサ、ピンヘッダ用ランドが�
 | 項目 | 内容 |
 |---|---|
 | システムクロック | HEXT 8 MHz（Y3）× PLL 6 = 48 MHz、APB1 24 MHz |
-| 電源保持 | S2が電源ボタン。MCUの出力で電源をラッチしており、MCUがリセットされると電源が落ちる |
+| 電源保持 | PWRが電源ボタン。MCUの出力で電源をラッチしており、MCUがリセットされると電源が落ちる |
 | ウォッチドッグ | 工場ファームがWDTを起動する。デバッガでhaltしたままだとWDTでリセットされ、電源が落ちてSWDが消える |
 | UART | USART1（PA9/PA10）、USART2（PA2/PA3）、USART3（PB10/PB11）を受信割り込み付きで使用。9600 bps設定あり |
 | ソフトウェアI²C的な操作 | PB0/PB1、PB3/PB4でビットバング通信。PB2/PB5/PB6/PB7は入力 |

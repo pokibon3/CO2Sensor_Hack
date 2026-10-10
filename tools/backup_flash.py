@@ -12,8 +12,8 @@ have matched. --no-restore leaves the sflash firmware on the MCU.
 
 The default DIR is backups/YYYYmmdd-HHMMSS in the repository root. Files:
 factory_firmware.bin, user_system_data.bin, w25q32_factory.bin, SHA256SUMS.
-Power the board with S2. Do not power it from the probe. While the sflash
-firmware runs, keep S2 held: the power latch alone does not keep SWD memory
+Power the board with PWR. Do not power it from the probe. While the sflash
+firmware runs, keep PWR held: the power latch alone does not keep SWD memory
 access working (about 7 minutes for the W25Q32).
 """
 import argparse, datetime, hashlib, os, subprocess, sys, tempfile
@@ -29,7 +29,7 @@ MCU_FILE, USD_FILE, SPI_FILE = 'factory_firmware.bin', 'user_system_data.bin', '
 
 # Pause WDT/WWDT while halted (the factory firmware starts the WDT), then halt.
 HALT = 'mww 0xE0042004 0x300; halt; mww 0xE0042004 0x300'
-# Interrupts must be off while the flash algorithm runs (see software/invaders/README.md).
+# Interrupts must be off while the flash algorithm runs (see doc/flashing.md).
 PREP_FLASH = ('cortex_m maskisr on; mww 0xE000E010 0; '
               'mww 0xE000E180 0xFFFFFFFF; mww 0xE000E280 0xFFFFFFFF')
 
@@ -141,10 +141,10 @@ def read_spi_chunk(t, addr, n):
 
 def backup_spiflash(outdir, ask):
     # With the sflash firmware (LT7680B and panel on), the PA7 latch alone does
-    # not keep SWD memory access working; S2 must be held for the whole read.
-    msg = 'Keep S2 held until the W25Q32 read finishes (about 7 minutes)'
+    # not keep SWD memory access working; PWR must be held for the whole read.
+    msg = 'Keep PWR held until the W25Q32 read finishes (about 7 minutes)'
     if ask:
-        input(msg + '. Hold S2 and press Enter... ')
+        input(msg + '. Hold PWR and press Enter... ')
     else:
         print(msg)
     t = open_tool()
@@ -175,7 +175,7 @@ def openocd(commands):
 
 
 def write_mcu(image, kind):
-    input('Hold S2 and press Enter (the MCU is reset after writing)... ')
+    input('Hold PWR and press Enter (the MCU is reset after writing)... ')
     openocd(f'{HALT}; {PREP_FLASH}; flash write_image erase {image} {kind}; '
             f'verify_image {image} {kind}; cortex_m maskisr auto; reset run')
 
@@ -206,7 +206,7 @@ def main():
         if a.target == 'all' and not a.no_restore:
             print('Writing the MCU backup back')
             write_mcu(os.path.join(os.path.abspath(a.outdir), MCU_FILE), f'{MCU_FLASH:#x} bin')
-    print(f'Saved to {a.outdir}. S2 can be released.')
+    print(f'Saved to {a.outdir}. PWR can be released.')
 
 
 if __name__ == '__main__':

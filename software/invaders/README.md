@@ -1,4 +1,6 @@
-# ALIEN RAID on the DM72D board
+# ALIEN RAID on the DM72C board
+
+![ALIEN RAID](../../img/INVADER.jpeg)
 
 Runs the invaders9k game (8080 code) on the AT32F415 with an 8080 emulator. The game is shown in portrait on the LT7680B-driven 480 x 272 panel, with per-object colors, anti-aliased scaling and Space-Invaders-style sound.
 
@@ -18,13 +20,9 @@ cd .. && python3 tools/bin2c.py rom/game.bin src/game_rom.c
 
 ## Controls
 
-| Button | Function |
-|---|---|
-| PB7 | Left |
-| S2 (PB2) | Right. Hold 1 s to power on, hold 5 s to power off |
-| PB6 | Fire / start |
+Left button = left, PWR = right, right button = fire / start. Hold PWR 1 s to power on, 5 s to power off. Details (in Japanese): [`../../doc/usage.md`](../../doc/usage.md).
 
-At 5 s the display blanks and the sound stops, and the PA7 latch is released. The board loses power when S2 is released: while S2 is held, the button itself keeps the supply on. The backlight cannot be switched off from the LT7680B. PWM1 had no effect on it. After the power-on hold, S2 is ignored as "right" until it is released.
+At 5 s the PA7 latch is released. The board loses power when PWR is released: while PWR is held, the button itself keeps the supply on. The backlight cannot be switched off from the LT7680B. PWM1 had no effect on it. After the power-on hold, PWR is ignored as "right" until it is released.
 
 ## Structure
 
@@ -59,25 +57,17 @@ On hardware: SPI mode 0 at 18 MHz with burst writes. Emulation takes at most 6 m
 The W25Q32 (JEDEC ID EF4016, 4 MB) sits on the LT7680B SPI master, chip select nSS1. It has no write protection (SR1 = 00, SR2 = 02 with QE = 1). The `sflash` environment is a small firmware that drives it through a RAM mailbox over SWD:
 
 ```sh
-pio run -e sflash          # then flash .pio/build/sflash/firmware.elf as below
+pio run -e sflash          # then flash .pio/build/sflash/firmware.elf (see Flashing)
 python3 tools/sflash.py id
 python3 tools/sflash.py read  out.bin [ADDR] [LEN]   # about 27 KB/s; 4 MB in 151 s
 python3 tools/sflash.py write in.bin ADDR            # erase 4 KB sectors, program, verify
 python3 tools/sflash.py erase4k ADDR
 ```
 
-Back up the factory contents with `../../tools/backup_flash.py` first. The dump is not included in the repository (SHA256 of the author's unit: `5b130150…d705`). Only 0x000000-0x10FFFF is used, and the rest (about 2.9 MB) is blank. Write/erase was tested on the last sector (0x3FF000), which was then erased back to blank.
+Back up the factory contents with `../../tools/backup_flash.py` first ([`../../doc/flash_backup.md`](../../doc/flash_backup.md)). The dump is not included in the repository (SHA256 of the author's unit: `5b130150…d705`). Only 0x000000-0x10FFFF is used, and the rest (about 2.9 MB) is blank. Write/erase was tested on the last sector (0x3FF000), which was then erased back to blank.
 
 ## Flashing
 
-Flash while halted (an MCU reset drops the power latch). See `../colorbar_sample/README.md` for wiring. Flash this project's ELF with the OpenOCD wrapper `../../tools/openocd.py` (see `../../tools/openocd_setup.md`):
-
-```sh
-python3 ../../tools/openocd.py \
-  -f interface/cmsis-dap.cfg -f target/at32f415xx.cfg -c "adapter speed 1000" \
-  -c "init; halt; cortex_m maskisr on; mww 0xE0042004 0x300; mww 0xE000E010 0; mww 0xE000E180 0xFFFFFFFF; mww 0xE000E280 0xFFFFFFFF; flash write_image erase .pio/build/at32f415cbt7/firmware.elf; verify_image .pio/build/at32f415cbt7/firmware.elf; cortex_m maskisr auto; reset run; exit"
-```
-
-Interrupts (SysTick, the 48 kHz TMR3 sound interrupt) must be disabled before flashing. Otherwise an interrupt during the flash algorithm jumps into the erased vector table and the write times out.
+Flash `.pio/build/at32f415cbt7/firmware.elf` (or `.pio/build/sflash/firmware.elf`) while halted, with SysTick and the 48 kHz sound interrupt disabled, as in [`../../doc/flashing.md`](../../doc/flashing.md) (power, OpenOCD command; J1 wiring in [`../../doc/debugger_connection.md`](../../doc/debugger_connection.md)).
 
 `g_diag` (`mdw &g_diag 9`) reports stage, frame count, worst-case emulation/video time, late frames and the LT7680B SPI settings.

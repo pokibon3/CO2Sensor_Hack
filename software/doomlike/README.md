@@ -1,19 +1,14 @@
-# DEMON GATE on the DM72D board
+# DOOM on the DM72C board
+
+| Title | Play |
+|---|---|
+| ![Title page](../../img/DOOM_TITLE.jpeg) | ![In play](../../img/DOOM.jpeg) |
 
 A DOOM-style raycaster for the AT32F415 + LT7680B board. The screen is portrait (272 x 480): the 3D view on top, a status panel with a minimap below. Everything is drawn with the LT7680B's hardware rectangle fill, so a frame is a few hundred register writes instead of a full-screen pixel transfer.
 
 ## Controls
 
-| Button | Function |
-|---|---|
-| PB7 (left) | Turn left. -1 in SET UP |
-| PB6 (right) | Turn right. +1 in SET UP |
-| PB7 + PB6 | Walk forward |
-| S2 (PB2, PWR, middle) | Fire / start; twice on the title opens SET UP; there it moves to the next field and leaves after the last one. Hold 1 s to power on, hold 5 s alone to power off (not while playing) |
-
-The title page shows the date, time and battery level at the top, and CO2, temperature and humidity at the bottom. SET UP sets the date and time of the PCF8563 RTC (LEFT -1, RIGHT +1, PWR next field; PWR on the last field saves and returns).
-
-The room sets the starting health: each sensor with a reading scores 0-100 (CO2 100 up to 800 ppm, 0 at 2000 ppm; 20-26 degC 100, -15 per degree outside; 40-60 %RH 100, -15 per 5 % outside), the lowest score is the comfort, and the game starts with 50 + comfort / 2 health. A sensor without a reading shows `----` and is left out.
+Left/right buttons turn, both together walk forward, PWR fires. On the title page PWR starts, PWR twice opens SET UP (clock). The title page shows the date, time and battery level at the top, and CO2, temperature and humidity at the bottom; the room's comfort sets the starting health. Details (in Japanese): [`../../doc/usage.md`](../../doc/usage.md).
 
 Three levels. Imps throw fireballs, brutes bite at close range. Health and ammo boxes lie around. Walk into the green exit switch to finish a level.
 
@@ -62,17 +57,11 @@ cc -O2 -Isrc -o host_sim tools/host_sim.c src/game.c src/render.c src/title.c sr
 python3 tools/ppm2png.py OUTDIR/*.ppm
 ```
 
-A frame needs about 220-700 rectangles in play (most when a near wall fills the view) The title page is about 2000 rectangles, so it is drawn once into each buffer; after that only the blinking PRESS FIRE line is redrawn.
+A frame needs about 220-700 rectangles in play (most when a near wall fills the view) The title page is about 2000 rectangles, so it is drawn once into each buffer; after that only the blinking PRESS SHOOT line and the top and bottom strips are redrawn.
 
 ## Flashing
 
-Build with `pio run`, then flash while halted (see `../invaders/README.md`):
-
-```sh
-python3 ../../tools/openocd.py \
-  -f interface/cmsis-dap.cfg -f target/at32f415xx.cfg -c "adapter speed 1000" \
-  -c "init; halt; cortex_m maskisr on; mww 0xE0042004 0x300; mww 0xE000E010 0; mww 0xE000E180 0xFFFFFFFF; mww 0xE000E280 0xFFFFFFFF; flash write_image erase .pio/build/at32f415cbt7/firmware.elf; verify_image .pio/build/at32f415cbt7/firmware.elf; cortex_m maskisr auto; reset run; exit"
-```
+Build with `pio run`, then flash `.pio/build/at32f415cbt7/firmware.elf` while halted, as in [`../../doc/flashing.md`](../../doc/flashing.md) (power, OpenOCD command; J1 wiring in [`../../doc/debugger_connection.md`](../../doc/debugger_connection.md)). Hold PWR while connecting: see the note at the end.
 
 ## Frame rate
 
@@ -82,6 +71,6 @@ The status panel shows `nnFPS nnMS` under the minimap, updated once per second: 
 
 On hardware: title page, 3D view, textured walls, status panel, controls and sound work. With flat walls a frame took at most 15 ms; with textured walls at most 20 ms (close to a wall). The game keeps 30 fps.
 
-2026-10-10: clock, battery, SET UP and the sensor strip work on hardware with no sensors connected (CO2, TEMP and HUMI show `----`). The CO2 and SHT3x drivers follow the factory firmware's disassembly and have not been tried with the sensors yet; the CO2 baud rate is an estimate.
+2026-10-10: clock, battery, SET UP and the sensor strip work on hardware. The CO2 module (9600 baud) and the SHT3x give readings, and the starting health follows them (see the title photo above). Without a sensor the value shows `----`.
 
-While the game runs, SWD fails to reach the core (the probe sees the DP, but memory access fails), as with the sflash firmware. Holding S2 makes it work: flash while S2 is held. The firmware stops counting the 5 s power-off press once it is halted.
+While the game runs, SWD fails to reach the core (the probe sees the DP, but memory access fails), as with the sflash firmware. Holding PWR makes it work: flash while PWR is held. The firmware stops counting the 5 s power-off press once it is halted.

@@ -35,7 +35,7 @@ def openocd_bin():
         raise SystemExit(f'no OpenOCD binary for {platform.system()} {platform.machine()}')
     path = os.path.join(OCD, 'bin-' + name, 'openocd' + EXE)
     if not os.path.exists(path):
-        raise SystemExit(f'{path} not found; see tools/openocd_setup.md')
+        raise SystemExit(f'{path} not found; see doc/openocd_setup.md')
     return path
 
 
