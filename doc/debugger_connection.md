@@ -1,64 +1,64 @@
-# デバッガ接続
+# デバッガの接続
 
-デバッガ（RP2040-Zero）の作り方、J1との配線、接続確認をまとめる。書き込みは [flashing.md](flashing.md)、OpenOCDの導入は [openocd_setup.md](openocd_setup.md)、工場ファームのバックアップは [flash_backup.md](flash_backup.md) を参照。
+デバッガ（RP2040-Zero）の作り方、J1との配線、接続確認の方法をまとめる。書き込みは [flashing.md](flashing.md)、OpenOCDの導入は [openocd_setup.md](openocd_setup.md)、純正ファームのバックアップは [flash_backup.md](flash_backup.md) を参照。
 
 ## 必要なもの
 
-- Waveshare RP2040-Zeroにdebugprobeファームを入れたデバッガ（作り方は下の「デバッガの作り方」）。CMSIS-DAPv2（VID:PID `2E8A:000C`）として認識され、macOSではドライバ不要
-- ArteryTek版OpenOCD（`tool-openocd-at32`）とラッパー `tools/openocd.py`（[openocd_setup.md](openocd_setup.md)）
+- Waveshare RP2040-Zeroにdebugprobeファームを書き込んだデバッガ（作り方は後述の「デバッガの作り方」）。CMSIS-DAPv2（VID:PID `2E8A:000C`）として認識され、macOSではドライバは不要
+- ArteryTek版OpenOCD（`tool-openocd-at32`）とラッパー `tools/openocd.py`（[openocd_setup.md](openocd_setup.md) を参照）
 
-## J1の位置とピン
+## J1の位置とピン配置
 
-J1は基板のボタン側の面（[`../img/OMOTE.jpeg`](../img/OMOTE.jpeg)）の下端中央、シルク`J1`の左にある4穴。ボタンを上にして**右からGND、SWDIO、SWCLK、3.3 V**の順に並ぶ（右端がPin 4、左端がPin 1）。
+J1は、基板のボタンがある面（[`../img/OMOTE.jpeg`](../img/OMOTE.jpeg)）の下端中央、シルク`J1`の左にある4つの穴。ボタンを上にして、**右からGND、SWDIO、SWCLK、3.3 V**の順に並ぶ（左端が1番ピン、右端が4番ピン）。
 
 ![J1：右からGND、SWD、SWC、3.3 V](../img/J1.jpeg)
 
-| J1 Pin | 信号 | MCU側 |
+| J1のピン | 信号 | MCU側 |
 |---:|---|---|
-| 1（左端） | 3.3 V / VREF | VDD系 |
-| 2 | SWCLK | PA14、MCU Pin 37 |
-| 3 | SWDIO | PA13、MCU Pin 34 |
-| 4（右端） | GND | VSS系 |
+| 1（左端） | 3.3 V / VREF | VDD |
+| 2 | SWCLK | PA14（MCUの37番ピン） |
+| 3 | SWDIO | PA13（MCUの34番ピン） |
+| 4（右端） | GND | VSS |
 
-J1にはNRSTがないため、connect under resetはできない。PA15/JTDI、PB3/JTDO-SWO、PB4/NJTRSTも出ておらず、JTAGではなくSWD専用の端子。AT32F415ではSWDIO/SWCLKを別のピンへリマップできない。
+J1にはNRSTが出ていないので、connect under resetは使えない。PA15/JTDI、PB3/JTDO-SWO、PB4/NJTRSTも出ておらず、JTAGには使えないSWD専用の端子である。また、AT32F415ではSWDIO/SWCLKを別のピンにリマップできない。
 
 ## 配線
 
-RP2040-ZeroとJ1を3本でつなぐ。RP2040-Zeroのピンはシルクの数字がGP番号。USBコネクタを上にして見る。
+RP2040-ZeroとJ1を3本の線でつなぐ。RP2040-Zeroのシルクの数字はGP番号を表す。以下はUSBコネクタを上にして見た位置。
 
 ![RP2040-Zeroのデバッガ：GND、GP2→SWCLK、GP3→SWDIO](../img/DEBUG_PROBE_pins.jpeg)
 
 | RP2040-Zero | 位置（USBコネクタが上） | 信号 | J1 |
 |---|---|---|---|
-| GND | 左列の上から2番目（5Vの下） | GND | Pin 4（右端） |
-| GP2（シルク`2`） | 右列の上から3番目 | SWCLK | Pin 2 |
-| GP3（シルク`3`） | 右列の上から4番目 | SWDIO | Pin 3 |
-| 3V3 | 左列の上から3番目 | — | 接続しない（Pin 1は空き） |
+| GND | 左列の上から2番目（5Vの下） | GND | 4番ピン（右端） |
+| GP2（シルク`2`） | 右列の上から3番目 | SWCLK | 2番ピン |
+| GP3（シルク`3`） | 右列の上から4番目 | SWDIO | 3番ピン |
+| 3V3 | 左列の上から3番目 | — | 接続しない（1番ピンは空けておく） |
 
-- J1の3.3 Vはつながない。デバッガから基板に給電しない
-- 配線は短くし、GNDを確実にする。必要ならSWCLK/SWDIOに直列100 Ω程度を入れる
-- Raspberry Pi Pico（GP2/GP3/GND、同じファーム）や製品版Raspberry Pi Debug Probe（`D`端子の橙SC→Pin 2、黄SD→Pin 3、黒GND→Pin 4）でも同じようにつなげる
+- J1の3.3 Vにはつながない。デバッガから基板へは給電しない
+- 配線はできるだけ短くし、GNDを確実に接続する。必要に応じてSWCLKとSWDIOに100 Ω程度の抵抗を直列に入れる
+- Raspberry Pi Pico（GP2/GP3/GND、ファームも同じ）や、製品版のRaspberry Pi Debug Probe（`D`端子のオレンジのSCを2番ピン、黄色のSDを3番ピン、黒のGNDを4番ピンへ）でも同じようにつなげる
 
 ## デバッガの作り方
 
-RP2040-ZeroにRaspberry Pi公式のdebugprobeファーム（Pico用）を書き込むと、CMSIS-DAPのデバッガになる。ピン割り当てはPicoと同じ。
+RP2040-ZeroにRaspberry Pi公式のdebugprobeファーム（Pico用）を書き込むと、CMSIS-DAPデバッガとして使える。ピン割り当てはPicoと同じ。
 
 1. https://github.com/raspberrypi/debugprobe/releases から最新の **`debugprobe_on_pico.uf2`** をダウンロードする。`debugprobe.uf2` は製品版Debug Probe用なので使わない
-2. RP2040-ZeroのBOOTボタンを押したままUSB-CでPCにつなぐ（つないだ状態なら、BOOTを押したままRESETを押して離す）。`RPI-RP2` というドライブが現れる
-3. `debugprobe_on_pico.uf2` を `RPI-RP2` にコピーする。コピーが終わると自動で再起動し、ドライブが消える
-4. USBに `Debugprobe on Pico (CMSIS-DAP)`（VID:PID `2E8A:000C`）が現れれば完成。macOSでは次で確認できる
+2. RP2040-ZeroのBOOTボタンを押したまま、USB-CケーブルでPCにつなぐ（すでにつないである場合は、BOOTを押したままRESETを押して離す）。`RPI-RP2` というドライブが現れる
+3. `debugprobe_on_pico.uf2` を `RPI-RP2` にコピーする。コピーが終わると自動的に再起動し、ドライブが消える
+4. USBデバイスとして `Debugprobe on Pico (CMSIS-DAP)`（VID:PID `2E8A:000C`）が現れれば完成。macOSでは次のコマンドで確認できる
 
 ```sh
 system_profiler SPUSBDataType | grep -i -A6 debugprobe
 ```
 
-あとは「配線」の表のとおりGP2、GP3、GNDをJ1につなぐ。GP4/GP5はUART（TX/RX）だが、この基板では使わない。
+あとは「配線」の表のとおり、GP2、GP3、GNDをJ1につなぐ。GP4/GP5はUART（TX/RX）だが、この基板では使わない。
 
 ## 接続確認
 
-基板の電源は**PWRボタンを1秒押して**入れる。自作ファームの動作中（LT7680Bと液晶が動いている間）は、DPは見えるがメモリアクセスが失敗するので、**PWRを押したまま**接続する。デバッガから給電しない。
+基板の電源は**PWRボタンを1秒押して**入れる。デバッガからは給電しない。自作ファームの動作中（LT7680Bと液晶が動いている間）は、DPは見えてもメモリアクセスに失敗するので、**PWRを押したまま**接続する。
 
-リポジトリのルートで実行する。`reset` を含むコマンドはMCUのリセットで電源が落ちるので使わない（[flashing.md](flashing.md) の「電源とリセット」）。
+コマンドはリポジトリのルートで実行する。`reset` を含むコマンドは、MCUがリセットされて電源が落ちるので使わないこと（[flashing.md](flashing.md) の「電源とリセットの注意点」を参照）。
 
 ```sh
 python3 tools/openocd.py \
@@ -66,14 +66,14 @@ python3 tools/openocd.py \
   -c "init; targets; exit"
 ```
 
-`SWD DPIDR 0x2ba01477` と `Cortex-M4 r0p1 processor detected` が出れば接続できている。
+`SWD DPIDR 0x2ba01477` と `Cortex-M4 r0p1 processor detected` が表示されれば接続できている。
 
 | 表示 | 原因と対処 |
 |---|---|
-| `unable to find a matching CMSIS-DAP device` | デバッガがUSBで見えていない。挿し直してから再試行する |
-| `Error connecting DP: cannot read IDR` | 基板の電源が切れている（PWRで入れる）。自作ファームの動作中ならPWRを押したまま。それでも駄目ならGP2/GP3の入れ違いとGNDを確認する |
+| `unable to find a matching CMSIS-DAP device` | デバッガがUSBで認識されていない。挿し直してから再試行する |
+| `Error connecting DP: cannot read IDR` | 基板の電源が切れている（PWRで入れる）。自作ファームの動作中であれば、PWRを押したまま接続する。それでもだめなら、GP2とGP3の配線が逆になっていないか、GNDがつながっているかを確認する |
 
 ## これまでの記録
 
-- 2026-10-09：工場ファームの動作中は接続が不安定だった（10 kHz・100 kHzとも多くは `cannot read IDR`、成功しても多くはメモリアクセス中に切れた）。その後、WDTを止めてhaltする手順（[flashing.md](flashing.md)）で、内蔵Flashのバックアップと書き込みができた（[flash_backup.md](flash_backup.md)）
-- 2026-10-10：RP2040-Zeroのデバッガ、1 MHzで接続・書き込み・照合（`verify_image`）を確認。電源が切れていると `cannot read IDR` になる
+- 2026-10-09：純正ファームの動作中は接続が不安定だった（10 kHzでも100 kHzでも大半が `cannot read IDR` になり、つながってもメモリアクセス中に切れることが多かった）。その後、WDTを止めてからhaltする手順（[flashing.md](flashing.md)）にしたところ、内蔵Flashのバックアップと書き込みができた（[flash_backup.md](flash_backup.md)）
+- 2026-10-10：RP2040-Zeroのデバッガを使い、1 MHzで接続、書き込み、照合（`verify_image`）ができることを確認した。基板の電源が切れていると `cannot read IDR` になる

@@ -1,28 +1,28 @@
 # OpenOCDの環境構築
 
-`tools/backup_flash.py`、`software/invaders/tools/sflash.py`、[flashing.md](flashing.md) の書き込み手順は、ArteryTek版OpenOCD（PlatformIOのパッケージ `tool-openocd-at32`）を使う。作者の環境はmacOS（Apple Silicon）、PlatformIO Core 6.1.19、`tool-openocd-at32` 0.1100.260710（`Open On-Chip Debugger 0.11.0+dev-ga8daba8`）。
+`tools/backup_flash.py`、`software/invaders/tools/sflash.py`、および [flashing.md](flashing.md) の書き込み手順では、ArteryTek版OpenOCD（PlatformIOのパッケージ `tool-openocd-at32`）を使う。作者の環境は次のとおり：macOS（Apple Silicon）、PlatformIO Core 6.1.19、`tool-openocd-at32` 0.1100.260710（`Open On-Chip Debugger 0.11.0+dev-ga8daba8`）。
 
 ## 標準のOpenOCDは使えない
 
-Homebrewの `openocd`（0.12.0）にはAT32F415のターゲット設定（`target/at32f415xx.cfg`）とFlashドライバがない。必ずArteryTek版を使う。
+Homebrewの `openocd`（0.12.0）には、AT32F415のターゲット設定（`target/at32f415xx.cfg`）もFlashドライバも入っていない。必ずArteryTek版を使うこと。
 
-## 1. PlatformIOを入れる
+## 1. PlatformIOをインストールする
 
 ```sh
 brew install platformio
 pio --version
 ```
 
-## 2. AT32用プラットフォームとOpenOCDを入れる
+## 2. AT32用プラットフォームとOpenOCDをインストールする
 
-`software/invaders` を一度ビルドすると、`platformio.ini` に書かれたプラットフォーム（`https://github.com/ArteryTek/platform-arterytekat32.git`）と、ツールチェーン、OpenOCDがまとめてインストールされる。
+`software/invaders` を一度ビルドすると、`platformio.ini` で指定したプラットフォーム（`https://github.com/ArteryTek/platform-arterytekat32.git`）、ツールチェーン、OpenOCDがまとめてインストールされる。
 
 ```sh
 cd software/invaders
 pio run -e sflash
 ```
 
-インストール先は `~/.platformio/packages/tool-openocd-at32`。ビルドせずにOpenOCDだけ入れる場合は次のとおり。
+インストール先は `~/.platformio/packages/tool-openocd-at32`。ビルドせずにOpenOCDだけをインストールする場合は、次のコマンドを使う。
 
 ```sh
 pio pkg install -g -t https://github.com/amoxu/tool-openocd-at32.git
@@ -37,18 +37,18 @@ python3 tools/openocd.py --version
 ls ~/.platformio/packages/tool-openocd-at32/scripts/target/at32f415xx.cfg
 ```
 
-OpenOCDの実行ファイルは `tool-openocd-at32/bin-<OS>_<CPU>/` にある。`tools/openocd.py` は実行中のOSとCPUに合うものを選び、`-s <scripts>` を付けて起動するラッパー。対応するのはmacOS、Linux（x86_64、aarch64、armv7l）、Windows。書き込みコマンド、`backup_flash.py`、`sflash.py` も同じ判定を使う。
+OpenOCDの実行ファイルは `tool-openocd-at32/bin-<OS>_<CPU>/` にある。`tools/openocd.py` は、実行中のOSとCPUに合ったものを選び、`-s <scripts>` を付けて起動するラッパーで、macOS、Linux（x86_64、aarch64、armv7l）、Windowsに対応している。書き込みコマンド、`backup_flash.py`、`sflash.py` も同じ方法で実行ファイルを選ぶ。
 
 ## 4. デバッガを確認する
 
-debugprobeファームを入れたRP2040-Zero（作り方は [debugger_connection.md](debugger_connection.md)）はCMSIS-DAPv2として認識される。macOSではドライバは不要。
+debugprobeファームを書き込んだRP2040-Zero（作り方は [debugger_connection.md](debugger_connection.md)）は、CMSIS-DAPv2として認識される。macOSではドライバは不要。
 
 ```sh
 system_profiler SPUSBDataType | grep -i -B2 -A6 cmsis-dap
 ```
 
-Vendor ID `0x2e8a`、Product ID `0x000c` が見えればよい。
+Vendor ID `0x2e8a`、Product ID `0x000c` が表示されればよい。
 
 ## 5. 基板との接続を試す
 
-J1の配線、電源の入れ方、接続確認のコマンドとエラーの対処は [debugger_connection.md](debugger_connection.md) を参照。
+J1の配線、電源の入れ方、接続確認のコマンド、エラーへの対処は [debugger_connection.md](debugger_connection.md) を参照。

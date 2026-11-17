@@ -1,19 +1,19 @@
 # 書き込み
 
-自作ファームをSWDで内蔵Flashに書き込む手順。デバッガの準備と配線、接続確認は [debugger_connection.md](debugger_connection.md) を参照。工場ファームへ戻すときは [flash_backup.md](flash_backup.md)。
+自作ファームをSWD経由で内蔵Flashに書き込む手順。デバッガの準備、配線、接続確認は [debugger_connection.md](debugger_connection.md) を参照。純正ファームに戻す方法は [flash_backup.md](flash_backup.md) にある。
 
-## 電源とリセット
+## 電源とリセットの注意点
 
-- 基板の電源は**PWRボタンを1秒押して**入れる。デバッガから給電しない
-- 電源はPA7のラッチで保持している。MCUがリセットされるとラッチが外れて電源が落ちる。このため `pio run -t upload`（OpenOCDの `program`）は使えない。haltしてから書き込み、最後に `reset run` する
-- PWRを押している間はボタン自体が給電するので、リセットしても電源は落ちない
-- 自作ファームの動作中（LT7680Bと液晶が動いている間）は、DPは見えるがメモリアクセスが失敗する。**PWRを押したまま**接続・書き込みする。DOOMは、halt後は電源OFFの長押しを数えない
-- Flashが空や壊れている（電源を保持するファームがない）ときは、書き込みの間ずっとPWRを押し続ける
-- 工場ファームはWDTを使う。haltしたままだとWDTでリセットされて電源が落ちるため、halt直後に `mww 0xE0042004 0x300`（`DEBUG_CTRL` のWDT/WWDT停止）を書く
+- 基板の電源は**PWRボタンを1秒押して**入れる。デバッガからは給電しない
+- 電源はPA7のラッチで保持されていて、MCUがリセットされるとラッチが外れて電源が落ちる。このため `pio run -t upload`（OpenOCDの `program`）は使えない。haltしてから書き込み、最後に `reset run` で起動する
+- PWRを押している間はボタン自体が通電させるので、リセットしても電源は落ちない
+- 自作ファームの動作中（LT7680Bと液晶が動いている間）は、DPは見えてもメモリアクセスに失敗する。接続と書き込みは**PWRを押したまま**行う。なお、DOOMはhaltされると電源OFFの長押し時間を数えなくなる
+- Flashが空、または壊れている（電源を保持するファームがない）ときは、書き込みが終わるまでPWRを押し続ける
+- 純正ファームはWDTを使っている。haltしたままだとWDTでリセットされて電源が落ちるため、halt直後に `mww 0xE0042004 0x300`（`DEBUG_CTRL` でWDTとWWDTを停止）を実行する
 
 ## 書き込みコマンド
 
-各プロジェクトのディレクトリ（`software/<name>/`）で `pio run` してから実行する。
+各プロジェクトのディレクトリ（`software/<name>/`）で `pio run` を実行してビルドしたあと、次のコマンドを実行する。
 
 ```sh
 python3 ../../tools/openocd.py \
@@ -21,22 +21,22 @@ python3 ../../tools/openocd.py \
   -c "init; halt; cortex_m maskisr on; mww 0xE0042004 0x300; mww 0xE000E010 0; mww 0xE000E180 0xFFFFFFFF; mww 0xE000E280 0xFFFFFFFF; flash write_image erase .pio/build/at32f415cbt7/firmware.elf; verify_image .pio/build/at32f415cbt7/firmware.elf; cortex_m maskisr auto; reset run; exit"
 ```
 
-| 書き込むもの | ELF |
+| 書き込むもの | ELFファイル |
 |---|---|
 | `software/colorbar_sample`、`software/invaders`、`software/doomlike` | `.pio/build/at32f415cbt7/firmware.elf` |
-| W25Q32読み書き用ファーム（`software/invaders` の `pio run -e sflash`） | `.pio/build/sflash/firmware.elf` |
+| W25Q32読み書き用ファーム（`software/invaders` で `pio run -e sflash`） | `.pio/build/sflash/firmware.elf` |
 
-コマンドの内容：
+各操作の意味：
 
-| 操作 | 理由 |
+| 操作 | 目的 |
 |---|---|
-| `halt` | リセットすると電源が落ちるため、止めた状態で書き込む |
-| `cortex_m maskisr on` | ステップ中の割り込みを止める |
-| `mww 0xE0042004 0x300` | WDT/WWDTをhalt中に止める |
+| `halt` | リセットすると電源が落ちるので、CPUを止めた状態で書き込む |
+| `cortex_m maskisr on` | ステップ実行中の割り込みを禁止する |
+| `mww 0xE0042004 0x300` | halt中はWDTとWWDTを止める |
 | `mww 0xE000E010 0` | SysTickを止める |
-| `mww 0xE000E180 0xFFFFFFFF`、`mww 0xE000E280 0xFFFFFFFF` | NVICの割り込みを全部無効にし、保留を消す |
-| `reset run` | 新しいファームで起動する（PA7のラッチは新しいファームが掛け直す） |
+| `mww 0xE000E180 0xFFFFFFFF`、`mww 0xE000E280 0xFFFFFFFF` | NVICの割り込みをすべて無効にし、保留中の割り込みをクリアする |
+| `reset run` | 新しいファームで起動する（PA7のラッチは新しいファームがかけ直す） |
 
-割り込み（SysTick、サウンド用の48 kHz TMR3など）を止めないと、書き込み中の割り込みが消去済みのベクタに飛び、書き込みがタイムアウトする。
+割り込み（SysTickやサウンド用の48 kHz TMR3など）を止めておかないと、書き込み中に発生した割り込みが消去済みのベクタテーブルへ飛び、書き込みがタイムアウトする。
 
-`verify_image` が `checksum mismatch - attempting binary compare` と出ることがある。続くバイト比較で差分が出なければ問題ない。
+`verify_image` で `checksum mismatch - attempting binary compare` と表示されることがあるが、続くバイト単位の比較で差分が出なければ問題ない。
