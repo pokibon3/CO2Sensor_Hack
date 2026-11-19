@@ -7,7 +7,7 @@
   sflash.py erase4k ADDR
   sflash.py write IN.bin ADDR                (erases 4 KB sectors first, then verifies)
 """
-import os, platform, socket, subprocess, sys, tempfile, time
+import os, platform, shutil, socket, subprocess, sys, tempfile, time
 
 OCD = os.path.expanduser('~/.platformio/packages/tool-openocd-at32')
 EXE = '.exe' if os.name == 'nt' else ''
@@ -16,6 +16,10 @@ NM = os.path.expanduser('~/.platformio/packages/toolchain-gccarmnoneeabi/bin/arm
 FLASH_SIZE = 0x400000
 BUF = 16384
 CMD_ID, CMD_READ, CMD_ERASE4K, CMD_ERASE64K, CMD_PROGRAM = 1, 2, 3, 4, 5
+
+# macOS python3 (Xcode CLT, python.org/Homebrew framework builds) can leak this
+# into child processes, and PlatformIO's own Python then fails to start.
+os.environ.pop('__PYVENV_LAUNCHER__', None)
 
 
 def openocd_bin():
@@ -36,6 +40,18 @@ def openocd_bin():
     path = os.path.join(OCD, 'bin-' + name, 'openocd' + EXE)
     if not os.path.exists(path):
         raise SystemExit(f'{path} not found; see doc/openocd_setup.md')
+    return path
+
+
+def pio_bin():
+    """PlatformIO CLI: on PATH, or in the penv the VS Code extension installs."""
+    path = shutil.which('pio')
+    if path:
+        return path
+    penv = os.path.expanduser('~/.platformio/penv')
+    path = os.path.join(penv, 'Scripts', 'pio.exe') if os.name == 'nt' else os.path.join(penv, 'bin', 'pio')
+    if not os.path.exists(path):
+        raise SystemExit('pio not found; install PlatformIO (VS Code extension or pip install platformio)')
     return path
 
 

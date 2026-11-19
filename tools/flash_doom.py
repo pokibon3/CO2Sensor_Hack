@@ -34,7 +34,7 @@ def main():
     a = ap.parse_args()
 
     if not a.no_build:
-        subprocess.run(['pio', 'run'], cwd=PROJECT, check=True)
+        subprocess.run([sflash.pio_bin(), 'run'], cwd=PROJECT, check=True)
     if not os.path.exists(ELF):
         raise SystemExit(f'{ELF} not found; build it with pio run in software/doomlike')
 

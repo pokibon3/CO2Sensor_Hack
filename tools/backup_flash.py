@@ -200,7 +200,7 @@ def main():
         backup_mcu(a.outdir)
     if a.target == 'all':
         if not os.path.exists(sflash.ELF):
-            subprocess.run(['pio', 'run', '-e', 'sflash'], cwd=INVADERS, check=True)
+            subprocess.run([sflash.pio_bin(), 'run', '-e', 'sflash'], cwd=INVADERS, check=True)
         print('Writing the sflash firmware to the MCU')
         write_mcu(os.path.abspath(sflash.ELF), '')
     try:

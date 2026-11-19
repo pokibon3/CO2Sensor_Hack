@@ -127,7 +127,7 @@ def main():
 
     if a.target == 'all':
         if not os.path.exists(sflash.ELF):
-            bf.subprocess.run(['pio', 'run', '-e', 'sflash'], cwd=bf.INVADERS, check=True)
+            bf.subprocess.run([bf.sflash.pio_bin(), 'run', '-e', 'sflash'], cwd=bf.INVADERS, check=True)
         print('Writing the sflash firmware to the MCU')
         bf.write_mcu(os.path.abspath(sflash.ELF), '')
     try:
