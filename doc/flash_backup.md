@@ -1,4 +1,4 @@
-# 純正ファームとFlashのバックアップ（`tools/backup_flash.py`）
+# 純正ファームとFlashのバックアップとリストア（`tools/backup_flash.py`、`tools/restore_flash.py`）
 
 AT32F415の内蔵FlashとW25Q32の内容をSWD経由で読み出し、ファイルに保存する。
 
@@ -10,9 +10,9 @@ AT32F415の内蔵FlashとW25Q32の内容をSWD経由で読み出し、ファイ�
 ### 使い方
 
 ```sh
-python3 tools/backup_flash.py mcu        # 内蔵Flash 128 KBとユーザーシステムデータ48 B
-python3 tools/backup_flash.py spiflash   # W25Q32 4 MB（sflashファームが動作していること。読み出し中はPWRを押し続ける）
-python3 tools/backup_flash.py all        # 上の両方。最後にMCUの内容を書き戻す
+./tools/mac/backup_flash.command mcu        # 内蔵Flash 128 KBとユーザーシステムデータ48 B
+./tools/mac/backup_flash.command spiflash   # W25Q32 4 MB（sflashファームが動作していること。読み出し中はPWRを押し続ける）
+./tools/mac/backup_flash.command all        # 上の両方。最後にMCUの内容を書き戻す
 ```
 
 | オプション | 内容 |
@@ -29,7 +29,7 @@ python3 tools/backup_flash.py all        # 上の両方。最後にMCUの内容�
 | `w25q32_factory.bin` | W25Q32全体（4 MB） |
 | `SHA256SUMS` | 上記ファイルのSHA256 |
 
-保存時には、作者の個体から取得したダンプのSHA256（[board_analysis.md](board_analysis.md) に記載）と比較し、一致したかどうかを表示する。ダンプ自体はメーカーの著作物なのでリポジトリには含めていない。`backups/` もコミットしないこと。
+保存時には、作者の個体から取得したダンプのSHA256（[board_analysis.md](board_analysis.md) に記載）と比較し、一致したかどうかを表示する。作者の個体のダンプは `analysis/factory_dump/` に置いてある。`backups/` はコミットしないこと。
 
 ### `all` の処理の流れ
 
@@ -50,3 +50,27 @@ python3 tools/backup_flash.py all        # 上の両方。最後にMCUの内容�
 - sflashファームの動作中（LT7680Bと液晶が動いている間）は、電源ラッチ（PA7）だけではSWDのメモリアクセスに失敗する。PWRを押していれば読める。電源の余裕が足りないためと考えているが、電圧は実測していない（2026-10-09に確認）
 - W25Q32は各ブロックを2回読み、内容が一致したものだけを採用する。途中でOpenOCDが終了した場合は自動的に起動し直す
 - 書き戻し時に `verify_image` が `checksum mismatch` と表示しても問題ない（[flashing.md](flashing.md) を参照。2026-10-09、書き戻し後に読み直してSHA256の一致を確認済み）
+
+## リストア（`tools/restore_flash.py`）
+
+バックアップを基板に書き戻し、純正ファームに戻す。準備（配線、電源、OpenOCD）はバックアップと同じ。
+
+```sh
+./tools/mac/restore_flash.command mcu        # 内蔵Flashにfactory_firmware.binを書き込む
+./tools/mac/restore_flash.command spiflash   # W25Q32にw25q32_factory.binを書き込む（sflashファームが動作していること）
+./tools/mac/restore_flash.command all        # sflashファーム → W25Q32 → 内蔵Flashの順に書き込む
+./tools/mac/restore_flash.command mcu backups/20261009-132630   # 使うバックアップを指定する
+```
+
+Windowsでは `tools\win\restore_flash.bat`、Finderからは `restore_flash.command` をダブルクリックし、メニューで選ぶ。
+
+| オプション | 内容 |
+|---|---|
+| `DIR` | 使うバックアップのディレクトリ。省略すると、`analysis/factory_dump/` と `backups/*/` から、作者の個体の純正ダンプとSHA256が一致するファイルを優先して選ぶ。一致するものがなければ一番新しいものを使う |
+| `-y` | 書き込み前の確認（`Write these to the board? [y/N]`）を省く |
+
+- 書き込む前に、選んだファイル、サイズ、同じディレクトリの `SHA256SUMS` との一致を確認し、純正ダンプと一致するかどうかを表示する。一致しないと表示された場合は、自作ファームなど純正以外のバックアップを選んでいないか確認する
+- ユーザーシステムデータ（`user_system_data.bin`）は書き込まない
+- W25Q32は64 KBブロックごとに読み出して比較し、異なるブロックだけを消去、書き込み、読み直して照合する。全体の読み出しに約7分かかり、書き換えるブロックがあればさらに時間がかかる。**終わるまでPWRを押し続けること**
+- `all` では、W25Q32の書き込みに失敗しても、最後に内蔵Flashへ純正ファームを書き戻す
+- 「Hold PWR and press Enter」と表示されたら、PWRを押したままEnterを押す

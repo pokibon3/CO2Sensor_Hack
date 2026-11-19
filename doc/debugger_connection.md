@@ -68,6 +68,8 @@ python3 tools/openocd.py \
 
 `SWD DPIDR 0x2ba01477` と `Cortex-M4 r0p1 processor detected` が表示されれば接続できている。
 
+同じ確認は `./tools/mac/check_probe.command` でも行える。デバッガ、DPIDR、CPUが見つかったかを表示し、接続できなければ下の表に沿った原因とOpenOCDの出力を表示する。haltもresetもしない。
+
 | 表示 | 原因と対処 |
 |---|---|
 | `unable to find a matching CMSIS-DAP device` | デバッガがUSBで認識されていない。挿し直してから再試行する |

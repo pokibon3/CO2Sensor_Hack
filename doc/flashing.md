@@ -11,6 +11,17 @@
 - Flashが空、または壊れている（電源を保持するファームがない）ときは、書き込みが終わるまでPWRを押し続ける
 - 純正ファームはWDTを使っている。haltしたままだとWDTでリセットされて電源が落ちるため、halt直後に `mww 0xE0042004 0x300`（`DEBUG_CTRL` でWDTとWWDTを停止）を実行する
 
+## DOOMゲームの書き込み（`tools/flash_doom.py`）
+
+DOOMゲーム（`software/doomlike`）は、リポジトリのルートで次のコマンドを実行すると、ビルドから書き込みまでを行える。中で実行するのは、次の「書き込みコマンド」と同じ手順。
+
+```sh
+./tools/mac/flash_doom.command             # pio runでビルドしてから書き込む
+./tools/mac/flash_doom.command --no-build  # ビルド済みのfirmware.elfを書き込む
+```
+
+「Hold PWR and press Enter」と表示されたら、PWRを押したままEnterを押し、「Done. PWR can be released.」と表示されるまで押し続ける。`-y` を付けると、Enterを待たずに書き込む。
+
 ## 書き込みコマンド
 
 各プロジェクトのディレクトリ（`software/<name>/`）で `pio run` を実行してビルドしたあと、次のコマンドを実行する。

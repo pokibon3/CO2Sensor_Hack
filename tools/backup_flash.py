@@ -41,6 +41,11 @@ KNOWN = {
 }
 
 
+def tcl_path(p):
+    """OpenOCD reads backslashes as Tcl escapes; use / on Windows."""
+    return p.replace('\\', '/')
+
+
 def sha256(data):
     return hashlib.sha256(data).hexdigest()
 
@@ -52,7 +57,7 @@ def dump_once(o, addr, length):
     with tempfile.NamedTemporaryFile(delete=False) as f:
         path = f.name
     try:
-        o.cmd(f'dump_image {path} {addr:#x} {length}')
+        o.cmd(f'dump_image {tcl_path(path)} {addr:#x} {length}')
         return open(path, 'rb').read()
     finally:
         os.unlink(path)
@@ -176,8 +181,8 @@ def openocd(commands):
 
 def write_mcu(image, kind):
     input('Hold PWR and press Enter (the MCU is reset after writing)... ')
-    openocd(f'{HALT}; {PREP_FLASH}; flash write_image erase {image} {kind}; '
-            f'verify_image {image} {kind}; cortex_m maskisr auto; reset run')
+    openocd(f'{HALT}; {PREP_FLASH}; flash write_image erase {tcl_path(image)} {kind}; '
+            f'verify_image {tcl_path(image)} {kind}; cortex_m maskisr auto; reset run')
 
 
 def main():

@@ -101,7 +101,7 @@ class Tool:
         self.run(CMD_READ, addr, length)
         with tempfile.NamedTemporaryFile(delete=False) as f:
             path = f.name
-        self.o.cmd(f'dump_image {path} {self.m + 28} {length}')
+        self.o.cmd(f'dump_image {path.replace(os.sep, "/")} {self.m + 28} {length}')
         data = open(path, 'rb').read()
         os.unlink(path)
         return data
@@ -110,7 +110,7 @@ class Tool:
         with tempfile.NamedTemporaryFile(delete=False) as f:
             f.write(data)
             path = f.name
-        self.o.cmd(f'load_image {path} {self.m + 28} bin')
+        self.o.cmd(f'load_image {path.replace(os.sep, "/")} {self.m + 28} bin')
         os.unlink(path)
         self.run(CMD_PROGRAM, addr, len(data))
 

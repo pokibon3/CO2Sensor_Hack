@@ -64,7 +64,7 @@ python3 tools/sflash.py write in.bin ADDR            # erase 4 KB sectors, progr
 python3 tools/sflash.py erase4k ADDR
 ```
 
-Back up the factory contents with `../../tools/backup_flash.py` first ([`../../doc/flash_backup.md`](../../doc/flash_backup.md)). The dump is not included in the repository (SHA256 of the author's unit: `5b130150…d705`). Only 0x000000-0x10FFFF is used, and the rest (about 2.9 MB) is blank. Write/erase was tested on the last sector (0x3FF000), which was then erased back to blank.
+Back up the factory contents with `../../tools/backup_flash.py` first ([`../../doc/flash_backup.md`](../../doc/flash_backup.md)). The author's dump is in `../../analysis/factory_dump/` (SHA256 `5b130150…d705`); restore it with `../../tools/restore_flash.py spiflash`. Only 0x000000-0x10FFFF is used, and the rest (about 2.9 MB) is blank. Write/erase was tested on the last sector (0x3FF000), which was then erased back to blank.
 
 ## Flashing
 
