@@ -43,7 +43,7 @@ RP2040-ZeroとJ1を3本の線でつなぐ。RP2040-Zeroのシルクの数字はG
 
 RP2040-ZeroにRaspberry Pi公式のdebugprobeファーム（Pico用）を書き込むと、CMSIS-DAPデバッガとして使える。ピン割り当てはPicoと同じ。
 
-1. https://github.com/raspberrypi/debugprobe/releases から最新の **`debugprobe_on_pico.uf2`** をダウンロードする。`debugprobe.uf2` は製品版Debug Probe用なので使わない
+1. https://github.com/raspberrypi/debugprobe/releases から最新の **`debugprobe_on_pico.uf2`** をダウンロードする。`debugprobe.uf2` は製品版Debug Probe用なので使わない。同じファイル（無改変）を [`../tools/debugprobe_on_pico.uf2`](../tools/debugprobe_on_pico.uf2) にも置いてあるので、それを使ってもよい（ライセンスは [`../tools/debugprobe_on_pico.LICENSE.txt`](../tools/debugprobe_on_pico.LICENSE.txt)）
 2. RP2040-ZeroのBOOTボタンを押したまま、USB-CケーブルでPCにつなぐ（すでにつないである場合は、BOOTを押したままRESETを押して離す）。`RPI-RP2` というドライブが現れる
 3. `debugprobe_on_pico.uf2` を `RPI-RP2` にコピーする。コピーが終わると自動的に再起動し、ドライブが消える
 4. USBデバイスとして `Debugprobe on Pico (CMSIS-DAP)`（VID:PID `2E8A:000C`）が現れれば完成。macOSでは次のコマンドで確認できる

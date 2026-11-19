@@ -34,7 +34,7 @@ CO2モニターDM72Cの基板（シルク`DM72D_M_RC`。AT32F415CBT7、LT7680B�
 | `software/colorbar_sample/` | LT7680Bのカラーバー表示サンプル（最初の動作確認用） |
 | `software/invaders/` | ALIEN RAID（8080エミュレータ上で動くインベーダー風ゲーム）とW25Q32読み書きツール |
 | `software/doomlike/` | DOOM（LT7680Bの矩形塗りつぶしだけで描くDOOM風レイキャスター） |
-| `tools/` | `backup_flash`、`restore_flash`、`flash_doom`、`check_probe` は、どのディレクトリからでもmacOS/Linuxでは `tools/mac/<名前>.command`、Windowsでは `tools\win\<名前>.bat` で起動できる（中身は同名の `.py`）。`.command` はFinderからダブルクリックしても起動できる。`backup_flash.command` と `restore_flash.command` を引数なしで起動すると、`mcu`／`spiflash`／`all` を選ぶメニューが出る。`backup_flash.py`：MCU内蔵FlashとW25Q32をSWD経由でバックアップする。`restore_flash.py`：バックアップを書き戻して純正ファームに戻す。`flash_doom.py`：DOOMゲームをビルドして書き込む。`check_probe.py`：デバッガとSWDの接続を確認する。`openocd.py`：OSに合ったOpenOCDを起動するラッパー |
+| `tools/` | `backup_flash`、`restore_flash`、`flash_doom`、`check_probe` は、どのディレクトリからでもmacOS/Linuxでは `tools/mac/<名前>.command`、Windowsでは `tools\win\<名前>.bat` で起動できる（中身は同名の `.py`）。`.command` はFinderからダブルクリックしても起動できる。`backup_flash.command` と `restore_flash.command` を引数なしで起動すると、`mcu`／`spiflash`／`all` を選ぶメニューが出る。`backup_flash.py`：MCU内蔵FlashとW25Q32をSWD経由でバックアップする。`restore_flash.py`：バックアップを書き戻して純正ファームに戻す。`flash_doom.py`：DOOMゲームをビルドして書き込む。`check_probe.py`：デバッガとSWDの接続を確認する。`openocd.py`：OSに合ったOpenOCDを起動するラッパー。`debugprobe_on_pico.uf2`：RP2040-Zeroをデバッガにするファーム（[doc/debugger_connection.md](doc/debugger_connection.md)） |
 
 作者の個体から取得した純正ファームとW25Q32のダンプを `analysis/factory_dump/` に置いている（メーカーの著作物）。`tools/restore_flash.py` は、ディレクトリを指定しなければこのダンプを書き戻す。自分の個体のバックアップは `tools/backup_flash.py` で取得すると `backups/` に保存される（`.gitignore` で除外済み）。
 

@@ -20,7 +20,9 @@ DOOMゲーム（`software/doomlike`）は、リポジトリのルートで次の
 ./tools/mac/flash_doom.command --no-build  # ビルド済みのfirmware.elfを書き込む
 ```
 
-「Hold PWR and press Enter」と表示されたら、PWRを押したままEnterを押し、「Done. PWR can be released.」と表示されるまで押し続ける。`-y` を付けると、Enterを待たずに書き込む。
+「Hold PWR and press Enter」と表示されたら、PWRを押したままEnterを押し、「Done. PWR can be released.」と表示されるまで押し続ける。DOOMはリセット後、PWRが1秒押され続けて初めて電源ラッチをかけるので、書き込み後も約2秒押し続けるよう表示が出る。そのあと `g_diag` をSWDで読み、起動できたか（`stage 0x3 (running)`）を表示する。起動していなければ「DOOM did not start」と `g_diag` の値を表示する。
+
+DOOMの動作中にhaltして書き込むと、消去の直後に `timeout waiting for algorithm` で書き込みに失敗する。リセット直後のMCUになら書き込める（2026-11-19に確認。動作中のクロックや周辺機能のどれが原因かは未特定）。このため `flash_doom.py` は、PWRを押したまま `reset halt` してから書き込む（PWRを押していればリセットしても電源は落ちない）。それでも失敗した場合は、最大3回までやり直す。`-y` を付けると、Enterを待たずに書き込む。
 
 ## 書き込みコマンド
 
