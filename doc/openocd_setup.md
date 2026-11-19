@@ -51,4 +51,4 @@ Vendor ID `0x2e8a`、Product ID `0x000c` が表示されればよい。
 
 ## 5. 基板との接続を試す
 
-J1の配線、電源の入れ方、接続確認のコマンド、エラーへの対処は [debugger_connection.md](debugger_connection.md) を参照。
+PWRで基板の電源を入れ、`./tools/mac/check_probe.command`（Windowsでは `tools\win\check_probe.bat`）を実行する。J1の配線、電源の入れ方、エラーへの対処は [debugger_connection.md](debugger_connection.md) を参照。

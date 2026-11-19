@@ -5,7 +5,7 @@
 ## 必要なもの
 
 - Waveshare RP2040-Zeroにdebugprobeファームを書き込んだデバッガ（作り方は後述の「デバッガの作り方」）。CMSIS-DAPv2（VID:PID `2E8A:000C`）として認識され、macOSではドライバは不要
-- ArteryTek版OpenOCD（`tool-openocd-at32`）とラッパー `tools/openocd.py`（[openocd_setup.md](openocd_setup.md) を参照）
+- ArteryTek版OpenOCD（`tool-openocd-at32`）。環境構築は [openocd_setup.md](openocd_setup.md) を参照
 
 ## J1の位置とピン配置
 
@@ -58,17 +58,22 @@ system_profiler SPUSBDataType | grep -i -A6 debugprobe
 
 基板の電源は**PWRボタンを1秒押して**入れる。デバッガからは給電しない。自作ファームの動作中（LT7680Bと液晶が動いている間）は、DPは見えてもメモリアクセスに失敗するので、**PWRを押したまま**接続する。
 
-コマンドはリポジトリのルートで実行する。`reset` を含むコマンドは、MCUがリセットされて電源が落ちるので使わないこと（[flashing.md](flashing.md) の「電源とリセットの注意点」を参照）。
+次のコマンドで確認する。どのディレクトリから実行してもよい。Finderからは `tools/mac/check_probe.command` をダブルクリックする。
+
+```sh
+./tools/mac/check_probe.command      # macOS/Linux
+tools\win\check_probe.bat            # Windows
+```
+
+デバッガ、DPIDR、CPUが見つかったかを表示する。`OK: the debugger is connected to the AT32F415.` と表示されれば接続できている。接続できなければ、下の表に沿った原因とOpenOCDの出力を表示する。haltもresetもしない。
+
+OpenOCDを直接使う場合は、リポジトリのルートで次のコマンドを実行する。`SWD DPIDR 0x2ba01477` と `Cortex-M4 r0p1 processor detected` が表示されれば接続できている。`reset` を含むコマンドは、MCUがリセットされて電源が落ちるので使わないこと（[flashing.md](flashing.md) の「電源とリセットの注意点」を参照）。
 
 ```sh
 python3 tools/openocd.py \
   -f interface/cmsis-dap.cfg -f target/at32f415xx.cfg -c "adapter speed 1000" \
   -c "init; targets; exit"
 ```
-
-`SWD DPIDR 0x2ba01477` と `Cortex-M4 r0p1 processor detected` が表示されれば接続できている。
-
-同じ確認は `./tools/mac/check_probe.command` でも行える。デバッガ、DPIDR、CPUが見つかったかを表示し、接続できなければ下の表に沿った原因とOpenOCDの出力を表示する。haltもresetもしない。
 
 | 表示 | 原因と対処 |
 |---|---|

@@ -29,7 +29,7 @@ CO2モニターDM72Cの基板（シルク`DM72D_M_RC`）の解析結果をまと
 
 ## 純正ファームとFlashのバックアップ（`analysis/factory_dump/`）
 
-ダンプと、そこから取り出した画像（メーカーの著作物）を `analysis/factory_dump/` に置いている。自分の個体のダンプは `../tools/backup_flash.py` で取得できる（[flash_backup.md](flash_backup.md)）。以下は各ファイルの説明。
+ダンプと、そこから取り出した画像（メーカーの著作物）を `analysis/factory_dump/` に置いている。自分の個体のダンプは `tools/mac/backup_flash.command`（Windowsでは `tools\win\backup_flash.bat`）で取得できる（[flash_backup.md](flash_backup.md)）。以下は各ファイルの説明。
 
 - `factory_firmware.bin` — AT32F415の出荷時のFlash全体（128 KB、SHA256 `0ffef943…e230`）。読み出した時点でFAPは無効だった
 - `user_system_data.bin` — ユーザーシステムデータ

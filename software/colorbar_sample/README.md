@@ -58,7 +58,7 @@ Known-good capture: `00000003 e0908054`, i.e. status 0x54, REG00 0x80, REG01 0x9
 
 ## Factory firmware
 
-Back up the factory firmware with `../../tools/backup_flash.py mcu` before flashing (128 KB; FAP was disabled on the author's unit). The author's dump is in `../../analysis/factory_dump/`. To restore the factory firmware, run `../../tools/restore_flash.py mcu` ([`../../doc/flash_backup.md`](../../doc/flash_backup.md)).
+Back up the factory firmware with `../../tools/mac/backup_flash.command mcu` (Windows: `..\..\tools\win\backup_flash.bat mcu`) before flashing (128 KB; FAP was disabled on the author's unit). The author's dump is in `../../analysis/factory_dump/`. To restore the factory firmware, run `../../tools/mac/restore_flash.command mcu` ([`../../doc/flash_backup.md`](../../doc/flash_backup.md)).
 
 ## Sources
 

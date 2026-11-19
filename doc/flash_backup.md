@@ -1,4 +1,4 @@
-# 純正ファームとFlashのバックアップとリストア（`tools/backup_flash.py`、`tools/restore_flash.py`）
+# 純正ファームとFlashのバックアップとリストア（`backup_flash`、`restore_flash`）
 
 AT32F415の内蔵FlashとW25Q32の内容をSWD経由で読み出し、ファイルに保存する。
 
@@ -14,6 +14,8 @@ AT32F415の内蔵FlashとW25Q32の内容をSWD経由で読み出し、ファイ�
 ./tools/mac/backup_flash.command spiflash   # W25Q32 4 MB（sflashファームが動作していること。読み出し中はPWRを押し続ける）
 ./tools/mac/backup_flash.command all        # 上の両方。最後にMCUの内容を書き戻す
 ```
+
+どのディレクトリから実行してもよい。Windowsでは `tools\win\backup_flash.bat mcu` のように実行する。Finderから `tools/mac/backup_flash.command` をダブルクリックすると、`mcu`／`spiflash`／`all` を選ぶメニューが出る。
 
 | オプション | 内容 |
 |---|---|
@@ -51,7 +53,7 @@ AT32F415の内蔵FlashとW25Q32の内容をSWD経由で読み出し、ファイ�
 - W25Q32は各ブロックを2回読み、内容が一致したものだけを採用する。途中でOpenOCDが終了した場合は自動的に起動し直す
 - 書き戻し時に `verify_image` が `checksum mismatch` と表示しても問題ない（[flashing.md](flashing.md) を参照。2026-10-09、書き戻し後に読み直してSHA256の一致を確認済み）
 
-## リストア（`tools/restore_flash.py`）
+## リストア（`restore_flash`）
 
 バックアップを基板に書き戻し、純正ファームに戻す。準備（配線、電源、OpenOCD）はバックアップと同じ。
 
@@ -62,7 +64,7 @@ AT32F415の内蔵FlashとW25Q32の内容をSWD経由で読み出し、ファイ�
 ./tools/mac/restore_flash.command mcu backups/20261009-132630   # 使うバックアップを指定する
 ```
 
-Windowsでは `tools\win\restore_flash.bat`、Finderからは `restore_flash.command` をダブルクリックし、メニューで選ぶ。
+どのディレクトリから実行してもよい。Windowsでは `tools\win\restore_flash.bat mcu` のように実行する。Finderから `tools/mac/restore_flash.command` をダブルクリックすると、`mcu`／`spiflash`／`all` を選ぶメニューが出る。
 
 | オプション | 内容 |
 |---|---|

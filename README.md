@@ -19,7 +19,7 @@ CO2モニターDM72Cの基板（シルク`DM72D_M_RC`。AT32F415CBT7、LT7680B�
 | [doc/debugger_connection.md](doc/debugger_connection.md) | デバッガの接続：RP2040-Zeroでのデバッガの作り方、J1の位置とピン配置、配線、接続確認 |
 | [doc/flashing.md](doc/flashing.md) | 書き込み：電源とリセットの注意点、書き込みコマンド |
 | [doc/openocd_setup.md](doc/openocd_setup.md) | OpenOCD（ArteryTek版）の環境構築 |
-| [doc/flash_backup.md](doc/flash_backup.md) | 純正ファームとW25Q32のバックアップとリストア（`tools/backup_flash.py`、`tools/restore_flash.py`） |
+| [doc/flash_backup.md](doc/flash_backup.md) | 純正ファームとW25Q32のバックアップとリストア（`backup_flash`、`restore_flash`） |
 | [doc/board_analysis.md](doc/board_analysis.md) | 基板の解析：部品、ピン配置、電源、純正ファームから分かったこと |
 | [software/colorbar_sample/README.md](software/colorbar_sample/README.md) | カラーバーサンプル：MCUとLT7680Bの配線、液晶の設定 |
 | [software/invaders/README.md](software/invaders/README.md) | ALIEN RAIDとW25Q32読み書きツール |
@@ -36,7 +36,7 @@ CO2モニターDM72Cの基板（シルク`DM72D_M_RC`。AT32F415CBT7、LT7680B�
 | `software/doomlike/` | DOOM（LT7680Bの矩形塗りつぶしだけで描くDOOM風レイキャスター） |
 | `tools/` | `backup_flash`、`restore_flash`、`flash_doom`、`check_probe` は、どのディレクトリからでもmacOS/Linuxでは `tools/mac/<名前>.command`、Windowsでは `tools\win\<名前>.bat` で起動できる（中身は同名の `.py`）。`.command` はFinderからダブルクリックしても起動できる。`backup_flash.command` と `restore_flash.command` を引数なしで起動すると、`mcu`／`spiflash`／`all` を選ぶメニューが出る。`backup_flash.py`：MCU内蔵FlashとW25Q32をSWD経由でバックアップする。`restore_flash.py`：バックアップを書き戻して純正ファームに戻す。`flash_doom.py`：DOOMゲームをビルドして書き込む。`check_probe.py`：デバッガとSWDの接続を確認する。`openocd.py`：OSに合ったOpenOCDを起動するラッパー。`debugprobe_on_pico.uf2`：RP2040-Zeroをデバッガにするファーム（[doc/debugger_connection.md](doc/debugger_connection.md)） |
 
-作者の個体から取得した純正ファームとW25Q32のダンプを `analysis/factory_dump/` に置いている（メーカーの著作物）。`tools/restore_flash.py` は、ディレクトリを指定しなければこのダンプを書き戻す。自分の個体のバックアップは `tools/backup_flash.py` で取得すると `backups/` に保存される（`.gitignore` で除外済み）。
+作者の個体から取得した純正ファームとW25Q32のダンプを `analysis/factory_dump/` に置いている（メーカーの著作物）。`tools/mac/restore_flash.command`（Windowsでは `tools\win\restore_flash.bat`）は、ディレクトリを指定しなければこのダンプを書き戻す。自分の個体のバックアップは `tools/mac/backup_flash.command`（`tools\win\backup_flash.bat`）で取得すると `backups/` に保存される（`.gitignore` で除外済み）。
 
 ## 要点
 
