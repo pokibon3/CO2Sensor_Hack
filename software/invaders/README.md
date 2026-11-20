@@ -68,6 +68,6 @@ Back up the factory contents with `../../tools/mac/backup_flash.command all` (Wi
 
 ## Flashing
 
-Run `../../tools/mac/flash_invaders.command` (Windows: `..\..\tools\win\flash_invaders.bat`) to build and flash in one step, holding PWR until it says `Done`. To do it by hand, flash `.pio/build/at32f415cbt7/firmware.elf` (or `.pio/build/sflash/firmware.elf`) while halted, with SysTick and the 48 kHz sound interrupt disabled, as in [`../../doc/flashing.md`](../../doc/flashing.md) (power, OpenOCD command; J1 wiring in [`../../doc/debugger_connection.md`](../../doc/debugger_connection.md)).
+Use the browser-based flasher: run `../../tools/mac/web_flasher.command` (Windows: `..\..\tools\win\web_flasher.bat`), which builds the games and opens the page in Chrome or Edge, pick the game, and hold PWR while writing until the page says it can be released ([`../../doc/flashing.md`](../../doc/flashing.md)). From the command line, `../../tools/mac/flash_invaders.command` (Windows: `..\..\tools\win\flash_invaders.bat`) builds and flashes in one step, holding PWR until it says `Done`. To do it by hand, flash `.pio/build/at32f415cbt7/firmware.elf` (or `.pio/build/sflash/firmware.elf`) while halted, with SysTick and the 48 kHz sound interrupt disabled, as in [`../../doc/flashing.md`](../../doc/flashing.md) (power, OpenOCD command; J1 wiring in [`../../doc/debugger_connection.md`](../../doc/debugger_connection.md)).
 
 `g_diag` (`mdw &g_diag 9`) reports stage, frame count, worst-case emulation/video time, late frames and the LT7680B SPI settings.

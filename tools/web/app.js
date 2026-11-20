@@ -302,14 +302,19 @@ $('write').onclick = async () => {
 
 // ---- start ----
 
+// Load the firmware list first: it must not wait for USB.
 (async () => {
+  await loadManifest();
+  setBusy(false);
   if (!navigator.usb) {
     $('unsupported').hidden = false;
     $('pick').disabled = true;
-  } else {
-    const devs = await navigator.usb.getDevices();
-    if (devs.length) await useDevice(devs[0]);
+    return;
   }
-  await loadManifest();
-  setBusy(false);
+  try {
+    const devs = await navigator.usb.getDevices();
+    if (devs.length && !dap) await useDevice(devs[0]);
+  } catch (e) {
+    log(`USBデバイスの一覧を取れない: ${e.message}`);
+  }
 })();

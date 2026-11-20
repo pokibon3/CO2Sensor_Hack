@@ -55,7 +55,9 @@ AT32F415の内蔵FlashとW25Q32の内容をSWD経由で読み出し、ファイ�
 
 ## リストア（`restore_flash`）
 
-バックアップを基板に書き戻し、純正ファームに戻す。準備（配線、電源、OpenOCD）はバックアップと同じ。
+バックアップを基板に書き戻し、純正ファームに戻す。
+
+内蔵Flashだけを戻すなら、Web版の書き込みツールで「純正ファームに戻す」（`analysis/factory_dump`）か「バックアップから戻す」（`backups/*/factory_firmware.bin` を選ぶ）を選んで書き込むのが簡単（[flashing.md](flashing.md) の「ブラウザから書き込む」）。W25Q32も戻すときは、次のコマンドライン版を使う。準備（配線、電源、OpenOCD）はバックアップと同じ。
 
 ```sh
 ./tools/mac/restore_flash.command mcu        # 内蔵Flashにfactory_firmware.binを書き込む

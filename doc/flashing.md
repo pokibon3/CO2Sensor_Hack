@@ -1,6 +1,45 @@
 # 書き込み
 
-自作ファームをSWD経由で内蔵Flashに書き込む手順。デバッガの準備、配線、接続確認は [debugger_connection.md](debugger_connection.md) を参照。純正ファームに戻す方法は [flash_backup.md](flash_backup.md) にある。
+自作ファームと純正ファームを、SWD経由でAT32F415の内蔵Flashに書き込む手順。デバッガの準備と配線は [debugger_connection.md](debugger_connection.md) を参照。
+
+ふだんは**ブラウザから書き込むWeb版**を使う。OpenOCDのコマンドで書き込むコマンドライン版は、末尾の「付録」にまとめた。
+
+## ブラウザから書き込む（Web版、`web_flasher`）
+
+ブラウザからDOOM、ALIEN RAID、純正ファームを書き込める。OpenOCDは使わず、ページがWebUSBでデバッガ（debugprobe）を直接操作する。ChromeかEdgeが必要（SafariとFirefoxはWebUSBに対応していない）。
+
+![Web版の書き込みツール](../img/WEB_FLASHER.png)
+
+### 起動
+
+```sh
+./tools/mac/web_flasher.command             # 2つのゲームをビルドしてからページを開く
+./tools/mac/web_flasher.command --no-build  # ビルド済みのfirmware.elfを使う
+```
+
+Windowsでは `tools\win\web_flasher.bat` を使う。`tools/web_flasher.py` がゲームを `.bin` に変換して `tools/web/firmware/` に置き、リポジトリを `http://localhost:8737/` で配信して `tools/web/` をChrome（なければEdge）で開く。終了するにはターミナルでCtrl+Cを押す。WebUSBはlocalhostかHTTPSでしか使えないので、HTMLファイルを直接開いても動かない。
+
+### 操作
+
+1. 「デバッガを選ぶ」でdebugprobe（`Debugprobe on Pico (CMSIS-DAP)`）を選ぶ。2回目からは自動で選ばれる
+2. 「接続を確認」で `check_probe` と同じ確認（DPIDR、CPUID、Flash容量）ができる。CPUは止めない
+3. 書き込むファームを選ぶ。「純正ファームに戻す」は `analysis/factory_dump/factory_firmware.bin` を、「バックアップから戻す」は自分で選んだ `factory_firmware.bin`（`backups/*/`）を書く。どちらも128 KBであることとSHA256を確認し、作者のダンプと違うときは確認のダイアログを出す
+4. PWRを1秒押して電源を入れ、**PWRを押したまま**「書き込む」を押す。「PWRを離してよい」と表示されるまで押し続ける（書き込み後も約2秒）。終わると `g_diag` を読んで、ゲームが起動したかを表示する
+
+書き込みに失敗したら、ページ下のログを見る。接続できないときの原因は [debugger_connection.md](debugger_connection.md) の表を参照。
+
+### 仕組み
+
+中で行う手順は、コマンドライン版の `flash_doom` と同じ（`reset halt`、WDT・SysTick・割り込みの停止、書き込み、照合、`reset run`、2秒待ってから `g_diag` の確認、失敗時は最大3回やり直し）。Flashの消去はSWDからレジスタを直接操作し、書き込みはSRAMに置いた小さなルーチン（`tools/web/stub/flash_stub.S`）で行う。ファイルの役割：
+
+| ファイル | 役割 |
+|---|---|
+| `tools/web/dap.js` | CMSIS-DAP v2（WebUSB）、SWD、メモリアクセス、Cortex-Mの停止・リセット |
+| `tools/web/at32.js` | AT32F415の内蔵Flashの消去・書き込み・照合（1 KBセクタ、128 KB） |
+| `tools/web/app.js`、`index.html` | 画面 |
+| `tools/web/stub/` | 書き込みルーチンのソースと、`at32.js` に貼るバイト列を出す `build_stub.sh` |
+
+W25Q32のバックアップと復元は、Web版にはない（コマンドライン版の `backup_flash`、`restore_flash` を使う。[flash_backup.md](flash_backup.md)）。
 
 ## 電源とリセットの注意点
 
@@ -11,7 +50,11 @@
 - Flashが空、または壊れている（電源を保持するファームがない）ときは、書き込みが終わるまでPWRを押し続ける
 - 純正ファームはWDTを使っている。haltしたままだとWDTでリセットされて電源が落ちるため、halt直後に `mww 0xE0042004 0x300`（`DEBUG_CTRL` でWDTとWWDTを停止）を実行する
 
-## DOOMゲームの書き込み（`flash_doom`）
+## 付録：コマンドラインから書き込む
+
+OpenOCD（[openocd_setup.md](openocd_setup.md)）を使う方法。Web版と同じことができ、ほかに `colorbar_sample` やW25Q32読み書き用ファームも書き込める。
+
+### DOOMゲームの書き込み（`flash_doom`）
 
 DOOMゲーム（`software/doomlike`）は、次のコマンドでビルドから書き込みまでを行える。どのディレクトリから実行してもよい。中で実行するのは、次の「書き込みコマンド」の `halt` を `reset halt` に置き換えた手順。
 
@@ -26,7 +69,7 @@ Windowsでは `tools\win\flash_doom.bat`、Finderからは `tools/mac/flash_doom
 
 DOOMの動作中にhaltして書き込むと、消去の直後に `timeout waiting for algorithm` で書き込みに失敗する。リセット直後のMCUになら書き込める（2026-11-19に確認。動作中のクロックや周辺機能のどれが原因かは未特定）。このため `flash_doom.py`（と `flash_invaders.py`）は、PWRを押したまま `reset halt` してから書き込む（PWRを押していればリセットしても電源は落ちない）。それでも失敗した場合は、最大3回までやり直す。
 
-## ALIEN RAIDの書き込み（`flash_invaders`）
+### ALIEN RAIDの書き込み（`flash_invaders`）
 
 ALIEN RAID（`software/invaders`）も同じ手順で書き込める。使い方と表示は `flash_doom` と同じで、`g_diag` は `frames` と `late frames`（60 Hzに間に合わなかったフレーム数）を表示する。ビルドするのはゲーム本体（`env:at32f415cbt7`）だけで、W25Q32読み書き用ファーム（`env:sflash`）は含まない。
 
@@ -37,36 +80,7 @@ ALIEN RAID（`software/invaders`）も同じ手順で書き込める。使い方
 
 Windowsでは `tools\win\flash_invaders.bat` を使う。共通の処理は `tools/flashfw.py` にある。
 
-## Web版の書き込みツール（`web_flasher`）
-
-ブラウザからDOOM、ALIEN RAID、純正ファームを書き込める。OpenOCDは使わず、ページがWebUSBでデバッガ（debugprobe）を直接操作する。ChromeかEdgeが必要（SafariとFirefoxはWebUSBに対応していない）。
-
-```sh
-./tools/mac/web_flasher.command             # 2つのゲームをビルドしてからページを開く
-./tools/mac/web_flasher.command --no-build  # ビルド済みのfirmware.elfを使う
-```
-
-Windowsでは `tools\win\web_flasher.bat` を使う。`tools/web_flasher.py` がゲームを `.bin` に変換して `tools/web/firmware/` に置き、リポジトリを `http://localhost:8737/` で配信して `tools/web/` をChrome（なければEdge）で開く。終了するにはターミナルでCtrl+Cを押す。WebUSBはlocalhostかHTTPSでしか使えないので、HTMLファイルを直接開いても動かない。
-
-ページでの操作：
-
-1. 「デバッガを選ぶ」でdebugprobe（`Debugprobe on Pico (CMSIS-DAP)`）を選ぶ。2回目からは自動で選ばれる
-2. 「接続を確認」で `check_probe` と同じ確認（DPIDR、CPUID、Flash容量）ができる。CPUは止めない
-3. 書き込むファームを選ぶ。「純正ファームに戻す」は `analysis/factory_dump/factory_firmware.bin` を、「バックアップから戻す」は自分で選んだ `factory_firmware.bin`（`backups/*/`）を書く。どちらも128 KBであることとSHA256を確認し、作者のダンプと違うときは確認のダイアログを出す
-4. PWRを押したまま「書き込む」を押し、「PWRを離してよい」と表示されるまで押し続ける
-
-中で行う手順は `flash_doom` と同じ（`reset halt`、WDT・SysTick・割り込みの停止、書き込み、照合、`reset run`、2秒待ってから `g_diag` の確認、失敗時は最大3回やり直し）。Flashの消去はSWDからレジスタを直接操作し、書き込みはSRAMに置いた小さなルーチン（`tools/web/stub/flash_stub.S`）で行う。ファイルの役割：
-
-| ファイル | 役割 |
-|---|---|
-| `tools/web/dap.js` | CMSIS-DAP v2（WebUSB）、SWD、メモリアクセス、Cortex-Mの停止・リセット |
-| `tools/web/at32.js` | AT32F415の内蔵Flashの消去・書き込み・照合（1 KBセクタ、128 KB） |
-| `tools/web/app.js`、`index.html` | 画面 |
-| `tools/web/stub/` | 書き込みルーチンのソースと、`at32.js` に貼るバイト列を出す `build_stub.sh` |
-
-W25Q32のバックアップと復元は、Web版にはない（`backup_flash`、`restore_flash` を使う）。
-
-## 書き込みコマンド
+### 書き込みコマンド（OpenOCDを直接使う）
 
 各プロジェクトのディレクトリ（`software/<name>/`）で `pio run` を実行してビルドしたあと、次のコマンドを実行する。
 

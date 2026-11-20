@@ -61,7 +61,7 @@ A frame needs about 220-700 rectangles in play (most when a near wall fills the 
 
 ## Flashing
 
-Run `../../tools/mac/flash_doom.command` (Windows: `..\..\tools\win\flash_doom.bat`) to build and flash in one step, holding PWR until it says `Done`. To do it by hand, build with `pio run`, then flash `.pio/build/at32f415cbt7/firmware.elf` with `reset halt` while PWR is held, as in [`../../doc/flashing.md`](../../doc/flashing.md) (power, OpenOCD command; J1 wiring in [`../../doc/debugger_connection.md`](../../doc/debugger_connection.md)). Hold PWR while connecting: see the note at the end.
+Use the browser-based flasher: run `../../tools/mac/web_flasher.command` (Windows: `..\..\tools\win\web_flasher.bat`), which builds the games and opens the page in Chrome or Edge, pick the game, and hold PWR while writing until the page says it can be released ([`../../doc/flashing.md`](../../doc/flashing.md)). From the command line, `../../tools/mac/flash_doom.command` (Windows: `..\..\tools\win\flash_doom.bat`) builds and flashes in one step, holding PWR until it says `Done`. To do it by hand, build with `pio run`, then flash `.pio/build/at32f415cbt7/firmware.elf` with `reset halt` while PWR is held, as in [`../../doc/flashing.md`](../../doc/flashing.md) (power, OpenOCD command; J1 wiring in [`../../doc/debugger_connection.md`](../../doc/debugger_connection.md)). Hold PWR while connecting: see the note at the end.
 
 ## Frame rate
 

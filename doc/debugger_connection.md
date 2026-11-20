@@ -5,7 +5,7 @@
 ## 必要なもの
 
 - Waveshare RP2040-Zeroにdebugprobeファームを書き込んだデバッガ（作り方は後述の「デバッガの作り方」）。CMSIS-DAPv2（VID:PID `2E8A:000C`）として認識され、macOSではドライバは不要
-- ArteryTek版OpenOCD（`tool-openocd-at32`）。環境構築は [openocd_setup.md](openocd_setup.md) を参照
+- ChromeかEdge（Web版の書き込みツールを使う場合）。コマンドライン版を使う場合は、ArteryTek版OpenOCD（`tool-openocd-at32`）。環境構築は [openocd_setup.md](openocd_setup.md) を参照
 
 ## J1の位置とピン配置
 
@@ -58,14 +58,14 @@ system_profiler SPUSBDataType | grep -i -A6 debugprobe
 
 基板の電源は**PWRボタンを1秒押して**入れる。デバッガからは給電しない。自作ファームの動作中（LT7680Bと液晶が動いている間）は、DPは見えてもメモリアクセスに失敗するので、**PWRを押したまま**接続する。
 
-次のコマンドで確認する。どのディレクトリから実行してもよい。Finderからは `tools/mac/check_probe.command` をダブルクリックする。
+Web版の書き込みツールで確認する（[flashing.md](flashing.md) の「ブラウザから書き込む」）。`tools/mac/web_flasher.command`（Windowsでは `tools\win\web_flasher.bat`）でページを開き、「デバッガを選ぶ」でdebugprobeを選んでから「接続を確認」を押す。「OK: AT32F415に接続できた」と表示されれば接続できている。CPUは止めない。Web版はブラウザがデバッガを直接使うので、OpenOCDを動かしたままだとデバッガを開けない。
+
+コマンドライン版では、次のコマンドで同じ確認ができる。どのディレクトリから実行してもよい。`OK: the debugger is connected to the AT32F415.` と表示されれば接続できている。haltもresetもしない。
 
 ```sh
 ./tools/mac/check_probe.command      # macOS/Linux
 tools\win\check_probe.bat            # Windows
 ```
-
-デバッガ、DPIDR、CPUが見つかったかを表示する。`OK: the debugger is connected to the AT32F415.` と表示されれば接続できている。接続できなければ、下の表に沿った原因とOpenOCDの出力を表示する。haltもresetもしない。
 
 OpenOCDを直接使う場合は、リポジトリのルートで次のコマンドを実行する。`SWD DPIDR 0x2ba01477` と `Cortex-M4 r0p1 processor detected` が表示されれば接続できている。`reset` を含むコマンドは、MCUがリセットされて電源が落ちるので使わないこと（[flashing.md](flashing.md) の「電源とリセットの注意点」を参照）。
 
@@ -75,10 +75,11 @@ python3 tools/openocd.py \
   -c "init; targets; exit"
 ```
 
-| 表示 | 原因と対処 |
+| 表示（Web版／コマンドライン版） | 原因と対処 |
 |---|---|
-| `unable to find a matching CMSIS-DAP device` | デバッガがUSBで認識されていない。挿し直してから再試行する |
-| `Error connecting DP: cannot read IDR` | 基板の電源が切れている（PWRで入れる）。自作ファームの動作中であれば、PWRを押したまま接続する。それでもだめなら、GP2とGP3の配線が逆になっていないか、GNDがつながっているかを確認する |
+| 「デバッガを選ぶ」の一覧に出ない／`unable to find a matching CMSIS-DAP device` | デバッガがUSBで認識されていない。挿し直してから再試行する |
+| 「デバッガを開けない」 | OpenOCDなど、ほかのアプリがデバッガを使っている。終了してから再試行する |
+| 「MCUが応答しない」／`Error connecting DP: cannot read IDR` | 基板の電源が切れている（PWRで入れる）。自作ファームの動作中であれば、PWRを押したまま接続する。それでもだめなら、GP2とGP3の配線が逆になっていないか、GNDがつながっているかを確認する |
 
 ## これまでの記録
 
