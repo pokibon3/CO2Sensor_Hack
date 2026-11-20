@@ -24,7 +24,47 @@ Windowsでは `tools\win\flash_doom.bat`、Finderからは `tools/mac/flash_doom
 
 「Hold PWR and press Enter」と表示されたら、PWRを押したままEnterを押し、「Done. PWR can be released.」と表示されるまで押し続ける。DOOMはリセット後、PWRが1秒押され続けて初めて電源ラッチをかけるので、書き込み後も約2秒押し続けるよう表示が出る。そのあと `g_diag` をSWDで読み、起動できたか（`stage 0x3 (running)`）を表示する。起動していなければ「DOOM did not start」と `g_diag` の値を表示する。
 
-DOOMの動作中にhaltして書き込むと、消去の直後に `timeout waiting for algorithm` で書き込みに失敗する。リセット直後のMCUになら書き込める（2026-11-19に確認。動作中のクロックや周辺機能のどれが原因かは未特定）。このため `flash_doom.py` は、PWRを押したまま `reset halt` してから書き込む（PWRを押していればリセットしても電源は落ちない）。それでも失敗した場合は、最大3回までやり直す。
+DOOMの動作中にhaltして書き込むと、消去の直後に `timeout waiting for algorithm` で書き込みに失敗する。リセット直後のMCUになら書き込める（2026-11-19に確認。動作中のクロックや周辺機能のどれが原因かは未特定）。このため `flash_doom.py`（と `flash_invaders.py`）は、PWRを押したまま `reset halt` してから書き込む（PWRを押していればリセットしても電源は落ちない）。それでも失敗した場合は、最大3回までやり直す。
+
+## ALIEN RAIDの書き込み（`flash_invaders`）
+
+ALIEN RAID（`software/invaders`）も同じ手順で書き込める。使い方と表示は `flash_doom` と同じで、`g_diag` は `frames` と `late frames`（60 Hzに間に合わなかったフレーム数）を表示する。ビルドするのはゲーム本体（`env:at32f415cbt7`）だけで、W25Q32読み書き用ファーム（`env:sflash`）は含まない。
+
+```sh
+./tools/mac/flash_invaders.command             # pio runでビルドしてから書き込む
+./tools/mac/flash_invaders.command --no-build  # ビルド済みのfirmware.elfを書き込む
+```
+
+Windowsでは `tools\win\flash_invaders.bat` を使う。共通の処理は `tools/flashfw.py` にある。
+
+## Web版の書き込みツール（`web_flasher`）
+
+ブラウザからDOOM、ALIEN RAID、純正ファームを書き込める。OpenOCDは使わず、ページがWebUSBでデバッガ（debugprobe）を直接操作する。ChromeかEdgeが必要（SafariとFirefoxはWebUSBに対応していない）。
+
+```sh
+./tools/mac/web_flasher.command             # 2つのゲームをビルドしてからページを開く
+./tools/mac/web_flasher.command --no-build  # ビルド済みのfirmware.elfを使う
+```
+
+Windowsでは `tools\win\web_flasher.bat` を使う。`tools/web_flasher.py` がゲームを `.bin` に変換して `tools/web/firmware/` に置き、リポジトリを `http://localhost:8737/` で配信して `tools/web/` をChrome（なければEdge）で開く。終了するにはターミナルでCtrl+Cを押す。WebUSBはlocalhostかHTTPSでしか使えないので、HTMLファイルを直接開いても動かない。
+
+ページでの操作：
+
+1. 「デバッガを選ぶ」でdebugprobe（`Debugprobe on Pico (CMSIS-DAP)`）を選ぶ。2回目からは自動で選ばれる
+2. 「接続を確認」で `check_probe` と同じ確認（DPIDR、CPUID、Flash容量）ができる。CPUは止めない
+3. 書き込むファームを選ぶ。「純正ファームに戻す」は `analysis/factory_dump/factory_firmware.bin` を、「バックアップから戻す」は自分で選んだ `factory_firmware.bin`（`backups/*/`）を書く。どちらも128 KBであることとSHA256を確認し、作者のダンプと違うときは確認のダイアログを出す
+4. PWRを押したまま「書き込む」を押し、「PWRを離してよい」と表示されるまで押し続ける
+
+中で行う手順は `flash_doom` と同じ（`reset halt`、WDT・SysTick・割り込みの停止、書き込み、照合、`reset run`、2秒待ってから `g_diag` の確認、失敗時は最大3回やり直し）。Flashの消去はSWDからレジスタを直接操作し、書き込みはSRAMに置いた小さなルーチン（`tools/web/stub/flash_stub.S`）で行う。ファイルの役割：
+
+| ファイル | 役割 |
+|---|---|
+| `tools/web/dap.js` | CMSIS-DAP v2（WebUSB）、SWD、メモリアクセス、Cortex-Mの停止・リセット |
+| `tools/web/at32.js` | AT32F415の内蔵Flashの消去・書き込み・照合（1 KBセクタ、128 KB） |
+| `tools/web/app.js`、`index.html` | 画面 |
+| `tools/web/stub/` | 書き込みルーチンのソースと、`at32.js` に貼るバイト列を出す `build_stub.sh` |
+
+W25Q32のバックアップと復元は、Web版にはない（`backup_flash`、`restore_flash` を使う）。
 
 ## 書き込みコマンド
 

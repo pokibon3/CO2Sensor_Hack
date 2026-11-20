@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DM72C Web Flasher</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --card: #ffffff; --text: #1d2330; --muted: #5d6677; --line: #dde1e8;
+    --accent: #2f6fde; --accent-text: #ffffff; --ok: #1e8a4c; --ok-bg: #e5f5ec;
+    --warn: #9a5b00; --warn-bg: #fff3dc; --err: #c0392b; --err-bg: #fde8e6;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14171c; --card: #1d2128; --text: #e6e9ef; --muted: #9aa3b2; --line: #313745;
+      --accent: #5b8ff0; --ok: #5cc98a; --ok-bg: #173325; --warn: #f0b552; --warn-bg: #3a2c12;
+      --err: #f07b6e; --err-bg: #3d1e1b;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.6 system-ui, -apple-system, "Hiragino Sans", "Yu Gothic UI", sans-serif; }
+  main { max-width: 760px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .sub { color: var(--muted); margin: 0 0 20px; }
+  section { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; margin-bottom: 16px; }
+  h2 { font-size: 16px; margin: 0 0 10px; display: flex; gap: 8px; align-items: baseline; }
+  h2 .n { color: var(--accent); font-variant-numeric: tabular-nums; }
+  button { font: inherit; border-radius: 7px; border: 1px solid var(--line); background: var(--card); color: var(--text);
+    padding: 7px 14px; cursor: pointer; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); font-weight: 600; }
+  button:disabled { opacity: .45; cursor: default; }
+  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .muted { color: var(--muted); }
+  .mono { font-family: var(--mono); font-size: 13px; }
+  .fw { display: grid; gap: 8px; margin: 4px 0 14px; }
+  .fw label { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; align-items: start; padding: 10px 12px;
+    border: 1px solid var(--line); border-radius: 8px; cursor: pointer; }
+  .fw label:has(input:checked) { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+  .fw input { margin-top: 5px; }
+  .fw .t { font-weight: 600; }
+  .fw .d { grid-column: 2; color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
+  .steps { margin: 0 0 14px; padding-left: 20px; }
+  .banner { border-radius: 8px; padding: 10px 14px; margin-top: 12px; font-weight: 600; display: none; }
+  .banner.show { display: block; }
+  .banner.info { background: var(--warn-bg); color: var(--warn); }
+  .banner.ok { background: var(--ok-bg); color: var(--ok); }
+  .banner.err { background: var(--err-bg); color: var(--err); }
+  .progress { margin-top: 12px; display: none; }
+  .progress.show { display: block; }
+  .bar { height: 8px; border-radius: 4px; background: var(--line); overflow: hidden; }
+  .bar > div { height: 100%; width: 0; background: var(--accent); transition: width .1s; }
+  pre#log { margin: 0; max-height: 260px; overflow: auto; white-space: pre-wrap; font: 12.5px/1.5 var(--mono);
+    color: var(--muted); }
+  .unsupported { background: var(--err-bg); color: var(--err); }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+<main>
+  <h1>DM72C Web Flasher</h1>
+  <p class="sub">デバッガ（RP2040-Zeroのdebugprobe）をWebUSBで操作して、AT32F415の内蔵Flashに書き込む。</p>
+
+  <section id="unsupported" class="unsupported" hidden>
+    このブラウザはWebUSBに対応していない。ChromeかEdgeで開くこと（<span class="mono">http://localhost</span> で開く必要がある）。
+  </section>
+
+  <section>
+    <h2><span class="n">1</span>デバッガ</h2>
+    <div class="row">
+      <button id="pick">デバッガを選ぶ</button>
+      <button id="check" disabled>接続を確認</button>
+      <span id="probe" class="muted">未選択</span>
+    </div>
+    <div id="checkResult" class="banner"></div>
+  </section>
+
+  <section>
+    <h2><span class="n">2</span>書き込むファーム</h2>
+    <div id="fwlist" class="fw"><span class="muted">読み込み中…</span></div>
+    <ol class="steps">
+      <li>PWRを1秒押して電源を入れる</li>
+      <li><b>PWRを押したまま</b>「書き込む」を押す</li>
+      <li>「PWRを離してよい」と表示されるまで押し続ける（書き込み後も約2秒）</li>
+    </ol>
+    <button id="write" class="primary" disabled>書き込む</button>
+    <div id="progress" class="progress">
+      <div class="row" style="justify-content: space-between"><span id="stage"></span><span id="pct" class="mono"></span></div>
+      <div class="bar"><div id="barfill"></div></div>
+    </div>
+    <div id="result" class="banner"></div>
+  </section>
+
+  <section>
+    <h2>ログ</h2>
+    <pre id="log"></pre>
+  </section>
+
+  <p class="muted">手順の詳細は <span class="mono">doc/flashing.md</span>、配線は <span class="mono">doc/debugger_connection.md</span>。</p>
+</main>
+<script type="module" src="app.js"></script>
+</body>
+</html>

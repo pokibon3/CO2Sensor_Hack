@@ -1,0 +1,48 @@
+{
+ "firmware": [
+  {
+   "id": "doom",
+   "name": "DOOM",
+   "file": "firmware/doom.bin",
+   "source": "software/doomlike",
+   "size": 55156,
+   "sha256": "e97b07e2d0d4bd8056763aecec52e094d89fe97adee2964fc0e2ad103cd5bcf1",
+   "built": 1791594288.0330966,
+   "g_diag": 536873292,
+   "fields": [
+    [
+     "frames",
+     1
+    ],
+    [
+     "ticks",
+     5
+    ]
+   ]
+  },
+  {
+   "id": "invaders",
+   "name": "ALIEN RAID",
+   "file": "firmware/invaders.bin",
+   "source": "software/invaders",
+   "size": 24280,
+   "sha256": "debda9a3f371b48cf5ba93226e1a24a1f9c349fce340b387dd54353dca2609ce",
+   "built": 1791594289.3806126,
+   "g_diag": 536898104,
+   "fields": [
+    [
+     "frames",
+     1
+    ],
+    [
+     "late frames",
+     5
+    ]
+   ]
+  }
+ ],
+ "factory": {
+  "file": "../../analysis/factory_dump/factory_firmware.bin",
+  "sha256": "0ffef943142116f185524f7dfce2d7e23e30a4551adc9b970cb94a84dec8e230"
+ }
+}
