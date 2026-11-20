@@ -2,6 +2,8 @@
 
 `tools/backup_flash.py`、`software/invaders/tools/sflash.py`、および [flashing.md](flashing.md) の書き込み手順では、ArteryTek版OpenOCD（PlatformIOのパッケージ `tool-openocd-at32`）を使う。作者の環境は次のとおり：macOS（Apple Silicon）、PlatformIO Core 6.1.19、`tool-openocd-at32` 0.1100.260710（`Open On-Chip Debugger 0.11.0+dev-ga8daba8`）。
 
+コマンドライン版のツールを使う場合だけ必要。Web版の書き込みツールには要らない。WindowsでのPlatformIOとGitの入れ方を含め、環境構築の全体は [setup.md](setup.md) を参照。
+
 ## 標準のOpenOCDは使えない
 
 Homebrewの `openocd`（0.12.0）には、AT32F415のターゲット設定（`target/at32f415xx.cfg`）もFlashドライバも入っていない。必ずArteryTek版を使うこと。
@@ -41,7 +43,7 @@ OpenOCDの実行ファイルは `tool-openocd-at32/bin-<OS>_<CPU>/` にある。
 
 ## 4. デバッガを確認する
 
-debugprobeファームを書き込んだRP2040-Zero（作り方は [debugger_connection.md](debugger_connection.md)）は、CMSIS-DAPv2として認識される。macOSではドライバは不要。
+debugprobeファームを書き込んだRP2040-Zero（作り方は [debugger_connection.md](debugger_connection.md)）は、CMSIS-DAPv2として認識される。macOSではドライバは不要。Windows 10/11でもWinUSBドライバが自動で割り当てられるので、Zadigは使わない（[setup.md](setup.md)）。
 
 ```sh
 system_profiler SPUSBDataType | grep -i -B2 -A6 cmsis-dap

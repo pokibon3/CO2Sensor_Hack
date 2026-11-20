@@ -4,8 +4,8 @@
 
 ## 必要なもの
 
-- Waveshare RP2040-Zeroにdebugprobeファームを書き込んだデバッガ（作り方は後述の「デバッガの作り方」）。CMSIS-DAPv2（VID:PID `2E8A:000C`）として認識され、macOSではドライバは不要
-- ChromeかEdge（Web版の書き込みツールを使う場合）。コマンドライン版を使う場合は、ArteryTek版OpenOCD（`tool-openocd-at32`）。環境構築は [openocd_setup.md](openocd_setup.md) を参照
+- Waveshare RP2040-Zeroにdebugprobeファームを書き込んだデバッガ（作り方は後述の「デバッガの作り方」）。CMSIS-DAPv2（VID:PID `2E8A:000C`）として認識され、macOSでもWindows 10/11でもドライバのインストールは不要（[setup.md](setup.md) の「デバッガのドライバ」）
+- PCの環境（Web版ならPython 3とChromeかEdge、コマンドライン版ならArteryTek版OpenOCDも）。手順は [setup.md](setup.md) を参照
 
 ## J1の位置とピン配置
 

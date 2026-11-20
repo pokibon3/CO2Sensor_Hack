@@ -1,6 +1,6 @@
 # 書き込み
 
-自作ファームと純正ファームを、SWD経由でAT32F415の内蔵Flashに書き込む手順。デバッガの準備と配線は [debugger_connection.md](debugger_connection.md) を参照。
+自作ファームと純正ファームを、SWD経由でAT32F415の内蔵Flashに書き込む手順。PCに入れるもの（Python、ブラウザ、PlatformIO）は [setup.md](setup.md)、デバッガの準備と配線は [debugger_connection.md](debugger_connection.md) を参照。
 
 ふだんは**ブラウザから書き込むWeb版**を使う。OpenOCDのコマンドで書き込むコマンドライン版は、末尾の「付録」にまとめた。
 

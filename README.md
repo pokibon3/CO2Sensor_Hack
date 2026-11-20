@@ -16,6 +16,7 @@ CO2モニターDM72Cの基板（シルク`DM72D_M_RC`。AT32F415CBT7、LT7680B�
 |---|---|
 | [doc/usage.md](doc/usage.md) | 使い方：電源の入れ方、DOOMとALIEN RAIDの操作、SET UP（時計合わせ）、部屋の快適度とHEALTH |
 | [doc/組立.md](doc/組立.md) | 組立手順：分解、J1へのピンヘッダのハンダ付け、デバッガの組み立てと接続（写真付き） |
+| [doc/setup.md](doc/setup.md) | 環境構築：Web版とビルドに必要なもの、macOSとWindowsの手順（Python、PlatformIO、デバッガのドライバ） |
 | [doc/debugger_connection.md](doc/debugger_connection.md) | デバッガの接続：RP2040-Zeroでのデバッガの作り方、J1の位置とピン配置、配線、接続確認 |
 | [doc/flashing.md](doc/flashing.md) | 書き込み：ブラウザから書き込むWeb版の使い方、電源とリセットの注意点、コマンドライン版（付録） |
 | [doc/openocd_setup.md](doc/openocd_setup.md) | OpenOCD（ArteryTek版）の環境構築 |
