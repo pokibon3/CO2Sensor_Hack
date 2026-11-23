@@ -5,6 +5,8 @@ AT32F415の内蔵FlashとW25Q32の内容をSWD経由で読み出し、ファイ�
 ### 準備
 
 - デバッガ（RP2040-Zero）をJ1につなぎ、PWRで基板の電源を入れる。配線は [debugger_connection.md](debugger_connection.md)、電源の注意点は [flashing.md](flashing.md) を参照
+- バッテリーを十分に充電しておく（`all` はW25Q32の読み書きに数分かかる）
+- 実行中は、充電用のUSBケーブルを接続しない（CO2センサーのマイコンとデバッガの電源電圧が異なると、書き込みと読み出しが不安定になるため）
 - PlatformIOとAT32用OpenOCD（`~/.platformio/packages/tool-openocd-at32`）が必要。環境構築は [openocd_setup.md](openocd_setup.md) を参照。sflashファームがまだビルドされていなければ、`all` の実行時に `pio run -e sflash` で自動的にビルドされる
 
 ### 使い方
